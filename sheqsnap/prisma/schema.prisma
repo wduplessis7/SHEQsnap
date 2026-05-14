@@ -1,0 +1,255 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  REPORTER
+  SAFETY_OFFICER
+  MANAGER
+  ADMIN
+  VIEWER
+}
+
+enum SeverityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NearMissStatus {
+  NEW
+  SUBMITTED
+  UNDER_REVIEW
+  ACTION_REQUIRED
+  IN_PROGRESS
+  CLOSED
+  CANCELLED
+}
+
+enum IncidentStatus {
+  NEW
+  SUBMITTED
+  UNDER_REVIEW
+  ACTION_REQUIRED
+  IN_PROGRESS
+  CLOSED
+  CANCELLED
+}
+
+enum ActionStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+enum ActionPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum LinkedType {
+  NEAR_MISS
+  INCIDENT
+  OTHER
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String
+  site      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users      User[]
+  nearMisses NearMiss[]
+  incidents  Incident[]
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members            UserGroup[]
+  assignedNearMisses NearMiss[] @relation("NearMissAssignedGroup")
+  assignedIncidents  Incident[] @relation("IncidentAssignedGroup")
+  assignedActions    Action[]   @relation("ActionAssignedGroup")
+}
+
+model UserGroup {
+  userId  String
+  groupId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([userId, groupId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         Role     @default(REPORTER)
+  departmentId String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  department         Department? @relation(fields: [departmentId], references: [id])
+  groups             UserGroup[]
+  reportedNearMisses NearMiss[]  @relation("NearMissReporter")
+  assignedNearMisses NearMiss[]  @relation("NearMissAssignedUser")
+  reportedIncidents  Incident[]  @relation("IncidentReporter")
+  assignedIncidents  Incident[]  @relation("IncidentAssignedUser")
+  ownedActions       Action[]    @relation("ActionOwner")
+  attachments        Attachment[]
+  auditLogs          AuditLog[]
+  comments           Comment[]
+}
+
+model NearMiss {
+  id              String         @id @default(cuid())
+  referenceNo     String         @unique
+  dateReported    DateTime       @default(now())
+  reportedById    String
+  departmentId    String?
+  location        String
+  description     String
+  riskCategory    String
+  severityLevel   SeverityLevel  @default(LOW)
+  immediateAction String?
+  status          NearMissStatus @default(NEW)
+  assignedUserId  String?
+  assignedGroupId String?
+  targetCloseDate DateTime?
+  actualCloseDate DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  reportedBy    User        @relation("NearMissReporter", fields: [reportedById], references: [id])
+  department    Department? @relation(fields: [departmentId], references: [id])
+  assignedUser  User?       @relation("NearMissAssignedUser", fields: [assignedUserId], references: [id])
+  assignedGroup Group?      @relation("NearMissAssignedGroup", fields: [assignedGroupId], references: [id])
+  attachments   Attachment[]
+  actions       Action[]
+  comments      Comment[]
+}
+
+model Incident {
+  id                 String         @id @default(cuid())
+  referenceNo        String         @unique
+  dateOfIncident     DateTime
+  dateReported       DateTime       @default(now())
+  reportedById       String
+  departmentId       String?
+  location           String
+  incidentType       String
+  description        String
+  personsInvolved    String?
+  injuryType         String?
+  severityLevel      SeverityLevel  @default(LOW)
+  rootCause          String?
+  immediateAction    String?
+  status             IncidentStatus @default(NEW)
+  assignedUserId     String?
+  assignedGroupId    String?
+  dueDate            DateTime?
+  closureDate        DateTime?
+  investigationNotes String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  reportedBy    User        @relation("IncidentReporter", fields: [reportedById], references: [id])
+  department    Department? @relation(fields: [departmentId], references: [id])
+  assignedUser  User?       @relation("IncidentAssignedUser", fields: [assignedUserId], references: [id])
+  assignedGroup Group?      @relation("IncidentAssignedGroup", fields: [assignedGroupId], references: [id])
+  attachments   Attachment[]
+  actions       Action[]
+  comments      Comment[]
+}
+
+model Action {
+  id               String         @id @default(cuid())
+  referenceNo      String         @unique
+  linkedType       LinkedType     @default(OTHER)
+  nearMissId       String?
+  incidentId       String?
+  description      String
+  ownerId          String
+  assignedGroupId  String?
+  priority         ActionPriority @default(MEDIUM)
+  dueDate          DateTime?
+  status           ActionStatus   @default(OPEN)
+  completionNotes  String?
+  dateCompleted    DateTime?
+  escalationFlag   Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  owner          User      @relation("ActionOwner", fields: [ownerId], references: [id])
+  assignedGroup  Group?    @relation("ActionAssignedGroup", fields: [assignedGroupId], references: [id])
+  linkedNearMiss NearMiss? @relation(fields: [nearMissId], references: [id])
+  linkedIncident Incident? @relation(fields: [incidentId], references: [id])
+  attachments    Attachment[]
+  comments       Comment[]
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  uploadedById String
+  nearMissId   String?
+  incidentId   String?
+  actionId     String?
+  createdAt    DateTime @default(now())
+
+  uploadedBy User      @relation(fields: [uploadedById], references: [id])
+  nearMiss   NearMiss? @relation(fields: [nearMissId], references: [id])
+  incident   Incident? @relation(fields: [incidentId], references: [id])
+  action     Action?   @relation(fields: [actionId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  entityType  String
+  entityId    String
+  action      String
+  changedById String
+  changes     String
+  timestamp   DateTime @default(now())
+
+  changedBy  User     @relation(fields: [changedById], references: [id])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  body       String
+  authorId   String
+  nearMissId String?
+  incidentId String?
+  actionId   String?
+  createdAt  DateTime @default(now())
+
+  author   User      @relation(fields: [authorId], references: [id])
+  nearMiss NearMiss? @relation(fields: [nearMissId], references: [id])
+  incident Incident? @relation(fields: [incidentId], references: [id])
+  action   Action?   @relation(fields: [actionId], references: [id])
+}
