@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Plus, Search, RefreshCw, AlertTriangle, HelpCircle } from "lucide-react";
@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const STATUSES = ["OPEN", "IN_PROGRESS", "COMPLETED", "OVERDUE", "CANCELLED"];
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
-export default function ActionsPage() {
+function ActionsPageInner() {
   const searchParams = useSearchParams();
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -200,5 +200,13 @@ export default function ActionsPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function ActionsPage() {
+  return (
+    <Suspense>
+      <ActionsPageInner />
+    </Suspense>
   );
 }

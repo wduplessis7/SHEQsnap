@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function NewActionPage() {
+function NewActionPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nearMissId = searchParams.get("nearMissId");
@@ -191,5 +191,13 @@ export default function NewActionPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function NewActionPage() {
+  return (
+    <Suspense>
+      <NewActionPageInner />
+    </Suspense>
   );
 }
