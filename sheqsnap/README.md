@@ -163,6 +163,47 @@ src/
 
 ---
 
+## Documentation (Wiki)
+
+Full user and admin documentation is available in the [`wiki/`](./wiki/) folder of this repository, and will be published to the [GitHub Wiki](https://github.com/wduplessis7/SHEQsnap/wiki) once the wiki is initialised.
+
+| Page | Description |
+|------|-------------|
+| [Home](./wiki/Home.md) | Welcome page and table of contents |
+| [Getting Started](./wiki/Getting-Started.md) | Installation and setup |
+| [User Roles and Permissions](./wiki/User-Roles-and-Permissions.md) | Role-based access control |
+| [Dashboard](./wiki/Dashboard.md) | KPI cards and charts explained |
+| [Near Misses](./wiki/Near-Misses.md) | Reporting and managing near misses |
+| [Incidents](./wiki/Incidents.md) | Logging and investigating incidents |
+| [Actions](./wiki/Actions.md) | Corrective actions register |
+| [Log Register](./wiki/Log-Register.md) | Inspections, toolbox talks, permits |
+| [Approvals](./wiki/Approvals.md) | Approval workflow |
+| [Contractor Management](./wiki/Contractor-Management.md) | Managing external contractors |
+| [Reports and Exports](./wiki/Reports-and-Exports.md) | Charts, filters, Excel and PDF exports |
+| [Admin Configuration](./wiki/Admin-Configuration.md) | System configuration |
+| [Audit Trail](./wiki/Audit-Trail.md) | Compliance logging |
+
+### Publishing the Wiki to GitHub
+
+The wiki content is ready to push to the GitHub Wiki. To activate it:
+
+1. Go to https://github.com/wduplessis7/SHEQsnap/wiki
+2. Click **"Create the first page"** — this initialises the wiki git backend
+3. You can then push the wiki content from the `wiki/` folder:
+
+```bash
+git clone https://github.com/wduplessis7/SHEQsnap.wiki.git /tmp/sheqsnap-wiki
+cp wiki/*.md /tmp/sheqsnap-wiki/
+cd /tmp/sheqsnap-wiki
+git config user.email "wduplessis7@gmail.com"
+git config user.name "Werner du Plessis"
+git add .
+git commit -m "Add full SHEQsnap wiki documentation"
+git push origin master
+```
+
+---
+
 ## License
 
 Private — SHEQsnap is proprietary software.
