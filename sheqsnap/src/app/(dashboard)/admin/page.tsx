@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Building2, Users2, Settings } from "lucide-react";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, Building2, Users2, HardHat, FactoryIcon } from "lucide-react";
 
 export default function AdminPage() {
   const sections = [
@@ -24,6 +24,20 @@ export default function AdminPage() {
       title: "Departments & Sites",
       description: "Configure departments, sites, and locations",
       color: "bg-green-50 text-green-600",
+    },
+    {
+      href: "/admin/companies",
+      icon: FactoryIcon,
+      title: "Contractor Companies",
+      description: "Manage external contractor companies and responsible persons",
+      color: "bg-orange-50 text-orange-600",
+    },
+    {
+      href: "/admin/contractors",
+      icon: HardHat,
+      title: "Contractor Users",
+      description: "Assign contractors to companies and set responsible approvers",
+      color: "bg-yellow-50 text-yellow-600",
     },
   ];
 

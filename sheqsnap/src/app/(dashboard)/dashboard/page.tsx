@@ -30,6 +30,8 @@ import {
   Clock,
   TrendingUp,
   RefreshCw,
+  BookOpen,
+  ClipboardCheck,
 } from "lucide-react";
 import { formatDate, isOverdue, STATUS_COLORS, SEVERITY_COLORS } from "@/lib/utils";
 import Link from "next/link";
@@ -57,6 +59,8 @@ interface Stats {
     totalIncidents: number;
     openActions: number;
     overdueActions: number;
+    pendingApprovals: number;
+    totalLogEntries: number;
   };
   nearMissesBySeverity: Array<{ severity: string; count: number }>;
   incidentsBySeverity: Array<{ severity: string; count: number }>;
@@ -139,6 +143,22 @@ export default function DashboardPage() {
       bg: "bg-red-50",
       href: "/actions?overdue=true",
     },
+    {
+      title: "Pending Approvals",
+      value: stats.kpis.pendingApprovals,
+      icon: ClipboardCheck,
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+      href: "/approvals",
+    },
+    {
+      title: "Log Entries",
+      value: stats.kpis.totalLogEntries,
+      icon: BookOpen,
+      color: "text-teal-600",
+      bg: "bg-teal-50",
+      href: "/logs",
+    },
   ];
 
   return (
@@ -170,7 +190,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {kpiCards.map((kpi) => (
           <Link key={kpi.title} href={kpi.href}>
             <Card className="hover:shadow-md transition-shadow cursor-pointer">

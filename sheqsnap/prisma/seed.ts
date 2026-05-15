@@ -1,4 +1,4 @@
-import { PrismaClient, Role, SeverityLevel, NearMissStatus, IncidentStatus, ActionStatus, ActionPriority, LinkedType } from "@prisma/client";
+import { PrismaClient, Role, SeverityLevel, NearMissStatus, IncidentStatus, ActionStatus, ActionPriority, LinkedType, LogType, LogEntryStatus, ApprovalStatus, ApprovalEntityType } from "@prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import bcrypt from "bcryptjs";
 import path from "path";
@@ -17,12 +17,16 @@ async function main() {
   // Clear existing data
   await prisma.auditLog.deleteMany();
   await prisma.comment.deleteMany();
+  await prisma.logAttachment.deleteMany();
+  await prisma.logEntry.deleteMany();
+  await prisma.approvalRequest.deleteMany();
   await prisma.attachment.deleteMany();
   await prisma.action.deleteMany();
   await prisma.nearMiss.deleteMany();
   await prisma.incident.deleteMany();
   await prisma.userGroup.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.company.deleteMany();
   await prisma.group.deleteMany();
   await prisma.department.deleteMany();
 
@@ -34,7 +38,7 @@ async function main() {
     prisma.department.create({ data: { name: "HR", site: "Head Office" } }),
     prisma.department.create({ data: { name: "Finance", site: "Head Office" } }),
   ]);
-  const [safetyDept, opsDept, maintDept, hrDept, financeDept] = depts;
+  const [safetyDept, opsDept, maintDept, hrDept] = depts;
   console.log("Created departments");
 
   // Groups
@@ -45,7 +49,7 @@ async function main() {
   ]);
   console.log("Created groups");
 
-  // Users
+  // Users (primary users first, contractor user needs companyId)
   const hash = async (pwd: string) => bcrypt.hash(pwd, 12);
   const [adminUser, safetyUser, managerUser, reporterUser, viewerUser] = await Promise.all([
     prisma.user.create({
@@ -64,7 +68,37 @@ async function main() {
       data: { name: "Vicky Viewer", email: "viewer@sheqsnap.com", password: await hash("Password123!"), role: Role.VIEWER, departmentId: hrDept.id, active: true },
     }),
   ]);
-  console.log("Created users");
+  console.log("Created internal users");
+
+  // Company
+  const abcCompany = await prisma.company.create({
+    data: {
+      name: "ABC Construction",
+      registrationNo: "2023/012345/07",
+      contactName: "Bob Builder",
+      contactEmail: "bob@abcconstruction.co.za",
+      contactPhone: "+27 11 555 1234",
+      siteId: safetyDept.id,
+      responsiblePersonId: safetyUser.id,
+      active: true,
+    },
+  });
+  console.log("Created company: ABC Construction");
+
+  // Contractor user (linked to ABC Construction, responsible person = safetyUser)
+  const contractorUser = await prisma.user.create({
+    data: {
+      name: "Contractor User",
+      email: "contractor@sheqsnap.com",
+      password: await hash("Password123!"),
+      role: Role.CONTRACTOR,
+      departmentId: safetyDept.id,
+      companyId: abcCompany.id,
+      responsiblePersonId: safetyUser.id,
+      active: true,
+    },
+  });
+  console.log("Created contractor user");
 
   // Group memberships
   await Promise.all([
@@ -114,6 +148,34 @@ async function main() {
     nearMisses.push(created);
   }
   console.log("Created near misses");
+
+  // Contractor near miss (PENDING_APPROVAL)
+  const contractorNm = await prisma.nearMiss.create({
+    data: {
+      referenceNo: "NM0011",
+      dateReported: new Date(),
+      reportedById: contractorUser.id,
+      departmentId: safetyDept.id,
+      location: "Construction Site A",
+      description: "Contractor worker nearly struck by falling debris from scaffolding.",
+      riskCategory: "Height",
+      severityLevel: SeverityLevel.HIGH,
+      immediateAction: "Area cordoned off. Site supervisor notified.",
+      status: NearMissStatus.PENDING_APPROVAL,
+    },
+  });
+
+  // ApprovalRequest for contractor near miss
+  await prisma.approvalRequest.create({
+    data: {
+      entityType: ApprovalEntityType.NEAR_MISS,
+      entityId: contractorNm.id,
+      requestedById: contractorUser.id,
+      assignedApproverId: safetyUser.id,
+      status: ApprovalStatus.PENDING,
+    },
+  });
+  console.log("Created contractor near miss + approval request");
 
   // Incidents
   const incData = [
@@ -199,10 +261,55 @@ async function main() {
   }
   console.log("Created actions");
 
+  // Log Entries
+  const logData = [
+    { ref: "LOG0001", title: "Monthly Safety Inspection - Main Site", type: LogType.INSPECTION, dept: safetyDept.id, company: null as string | null, desc: "Routine monthly safety inspection conducted across all areas of Main Site. 12 observations noted, 3 requiring immediate attention.", status: LogEntryStatus.ACTIVE, daysAgo: 7, uploader: safetyUser.id, approver: adminUser.id },
+    { ref: "LOG0002", title: "Toolbox Talk - Working at Heights", type: LogType.TOOLBOX_TALK, dept: opsDept.id, company: null as string | null, desc: "Toolbox talk conducted with 15 employees on safe working at height procedures, PPE requirements, and fall arrest systems.", status: LogEntryStatus.ACTIVE, daysAgo: 14, uploader: safetyUser.id, approver: adminUser.id },
+    { ref: "LOG0003", title: "Safety Committee Meeting Minutes - Q1", type: LogType.MEETING_MINUTES, dept: safetyDept.id, company: null as string | null, desc: "Quarterly safety committee meeting. Agenda: incident review, action status, near miss trends, upcoming training plan.", status: LogEntryStatus.ACTIVE, daysAgo: 30, uploader: managerUser.id, approver: adminUser.id },
+    { ref: "LOG0004", title: "ABC Construction Safety File 2026", type: LogType.SAFETY_FILE, dept: safetyDept.id, company: abcCompany.id, desc: "Annual safety file submission from ABC Construction covering all mandatory documentation, risk assessments, and method statements.", status: LogEntryStatus.PENDING_APPROVAL, daysAgo: 2, uploader: contractorUser.id, approver: null as string | null },
+    { ref: "LOG0005", title: "Hot Work Permit - Boiler Room Repair", type: LogType.PERMIT, dept: maintDept.id, company: abcCompany.id, desc: "Hot work permit issued for welding repairs in boiler room. Valid for 3 days. Fire watch assigned.", status: LogEntryStatus.ACTIVE, daysAgo: 5, uploader: safetyUser.id, approver: managerUser.id },
+    { ref: "LOG0006", title: "Incident Log - May 2026", type: LogType.INCIDENT_LOG, dept: safetyDept.id, company: null as string | null, desc: "Monthly incident log summary for May 2026. Total incidents: 2, near misses: 5, first aid cases: 1.", status: LogEntryStatus.DRAFT, daysAgo: 1, uploader: safetyUser.id, approver: null as string | null },
+  ];
+
+  const logEntries = [];
+  for (const log of logData) {
+    const entryDate = new Date(now.getTime() - log.daysAgo * 24 * 60 * 60 * 1000);
+    const created = await prisma.logEntry.create({
+      data: {
+        referenceNo: log.ref,
+        title: log.title,
+        logType: log.type,
+        companyId: log.company,
+        departmentId: log.dept,
+        entryDate,
+        description: log.desc,
+        uploadedById: log.uploader,
+        status: log.status,
+        approvedById: log.approver,
+        approvedAt: log.approver ? new Date(now.getTime() - (log.daysAgo - 1) * 24 * 60 * 60 * 1000) : null,
+      },
+    });
+    logEntries.push(created);
+  }
+  console.log("Created log entries");
+
+  // Approval request for contractor log entry
+  await prisma.approvalRequest.create({
+    data: {
+      entityType: ApprovalEntityType.LOG_ENTRY,
+      entityId: logEntries[3].id,
+      requestedById: contractorUser.id,
+      assignedApproverId: safetyUser.id,
+      status: ApprovalStatus.PENDING,
+    },
+  });
+  console.log("Created approval request for contractor log entry");
+
   // Add some audit logs
   await Promise.all([
     prisma.auditLog.create({ data: { entityType: "NearMiss", entityId: nearMisses[0].id, action: "UPDATE", changedById: safetyUser.id, changes: JSON.stringify({ previous: { status: "NEW" }, updated: { status: "UNDER_REVIEW" } }) } }),
     prisma.auditLog.create({ data: { entityType: "Incident", entityId: incidents[0].id, action: "UPDATE", changedById: safetyUser.id, changes: JSON.stringify({ previous: { status: "NEW" }, updated: { status: "CLOSED" } }) } }),
+    prisma.auditLog.create({ data: { entityType: "LogEntry", entityId: logEntries[0].id, action: "CREATE", changedById: safetyUser.id, changes: JSON.stringify({ referenceNo: "LOG0001", status: "ACTIVE" }) } }),
   ]);
 
   // Add some comments
@@ -214,11 +321,12 @@ async function main() {
 
   console.log("Seeding complete!");
   console.log("\nDemo users:");
-  console.log("  admin@sheqsnap.com   / Password123! (Admin)");
-  console.log("  safety@sheqsnap.com  / Password123! (Safety Officer)");
-  console.log("  manager@sheqsnap.com / Password123! (Manager)");
-  console.log("  reporter@sheqsnap.com/ Password123! (Reporter)");
-  console.log("  viewer@sheqsnap.com  / Password123! (Viewer)");
+  console.log("  admin@sheqsnap.com       / Password123! (Admin)");
+  console.log("  safety@sheqsnap.com      / Password123! (Safety Officer)");
+  console.log("  manager@sheqsnap.com     / Password123! (Manager)");
+  console.log("  reporter@sheqsnap.com    / Password123! (Reporter)");
+  console.log("  viewer@sheqsnap.com      / Password123! (Viewer)");
+  console.log("  contractor@sheqsnap.com  / Password123! (Contractor - ABC Construction)");
 }
 
 main()

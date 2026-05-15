@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Role } from "@prisma/client";
 import { subMonths, startOfMonth, endOfMonth, format } from "date-fns";
 
 export async function GET(req: NextRequest) {
@@ -20,11 +21,16 @@ export async function GET(req: NextRequest) {
   const deptFilter = departmentId ? { departmentId } : {};
 
   // KPI counts
+  const sessionUser = session.user as any;
+  const approverRoles: Role[] = [Role.SAFETY_OFFICER, Role.MANAGER, Role.ADMIN];
+
   const [
     totalNearMisses,
     totalIncidents,
     openActions,
     overdueActions,
+    pendingApprovals,
+    totalLogEntries,
     nearMissesBySeverity,
     incidentsBySeverity,
     nearMissesByDepartment,
@@ -52,6 +58,12 @@ export async function GET(req: NextRequest) {
         status: { notIn: ["COMPLETED", "CANCELLED"] },
       },
     }),
+    approverRoles.includes(sessionUser.role)
+      ? prisma.approvalRequest.count({
+          where: { assignedApproverId: sessionUser.id, status: "PENDING" },
+        })
+      : Promise.resolve(0),
+    prisma.logEntry.count(),
     prisma.nearMiss.groupBy({
       by: ["severityLevel"],
       _count: true,
@@ -127,6 +139,8 @@ export async function GET(req: NextRequest) {
       totalIncidents,
       openActions,
       overdueActions,
+      pendingApprovals,
+      totalLogEntries,
     },
     nearMissesBySeverity: nearMissesBySeverity.map((r) => ({
       severity: r.severityLevel,

@@ -11,25 +11,82 @@ import {
   BarChart3,
   Settings,
   Shield,
+  BookOpen,
+  ClipboardCheck,
+  Building2,
+  HardHat,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/near-misses", label: "Near Misses", icon: AlertTriangle },
   { href: "/incidents", label: "Incidents", icon: FileWarning },
   { href: "/actions", label: "Actions", icon: CheckSquare },
+  { href: "/logs", label: "Log Register", icon: BookOpen },
+];
+
+const approverNavItems = [
   { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
 const adminItems = [
   { href: "/admin", label: "Admin", icon: Settings },
+  { href: "/admin/companies", label: "Companies", icon: Building2 },
+  { href: "/admin/contractors", label: "Contractors", icon: HardHat },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const isAdmin = (session?.user as any)?.role === "ADMIN";
+  const userRole = (session?.user as any)?.role;
+  const isAdmin = userRole === "ADMIN";
+  const isContractor = userRole === "CONTRACTOR";
+  const isApprover = ["SAFETY_OFFICER", "MANAGER", "ADMIN"].includes(userRole);
+
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+
+  useEffect(() => {
+    if (!isApprover) return;
+    const fetchCount = async () => {
+      try {
+        const res = await fetch("/api/approvals");
+        if (res.ok) {
+          const data = await res.json();
+          setPendingApprovals(Array.isArray(data) ? data.length : 0);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 60000); // refresh every minute
+    return () => clearInterval(interval);
+  }, [isApprover]);
+
+  function NavLink({ href, label, icon: Icon, badge }: { href: string; label: string; icon: React.ComponentType<any>; badge?: number }) {
+    const isActive = pathname === href || pathname.startsWith(href + "/");
+    return (
+      <Link
+        href={href}
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+          isActive
+            ? "bg-blue-600 text-white"
+            : "text-gray-300 hover:bg-gray-800 hover:text-white"
+        )}
+      >
+        <Icon className="h-5 w-5 shrink-0" />
+        <span className="flex-1">{label}</span>
+        {badge != null && badge > 0 && (
+          <span className="ml-auto inline-flex items-center justify-center rounded-full bg-orange-500 text-white text-xs font-bold min-w-[18px] h-[18px] px-1">
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
+      </Link>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col bg-gray-900 text-white">
@@ -44,26 +101,27 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-300 hover:bg-gray-800 hover:text-white"
-              )}
-            >
-              <Icon className="h-5 w-5 shrink-0" />
-              {item.label}
-            </Link>
-          );
-        })}
+        {navItems.map((item) => (
+          <NavLink key={item.href} {...item} />
+        ))}
 
+        {/* Approvals — only for non-contractors with approver role */}
+        {isApprover && (
+          <NavLink
+            href="/approvals"
+            label="Approvals"
+            icon={ClipboardCheck}
+            badge={pendingApprovals}
+          />
+        )}
+
+        {/* Reports — hide for contractors */}
+        {!isContractor &&
+          approverNavItems.map((item) => (
+            <NavLink key={item.href} {...item} />
+          ))}
+
+        {/* Admin section */}
         {isAdmin && (
           <>
             <div className="mt-4 mb-2 px-3">
@@ -71,25 +129,9 @@ export function Sidebar() {
                 Administration
               </p>
             </div>
-            {adminItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-gray-800 hover:text-white"
-                  )}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  {item.label}
-                </Link>
-              );
-            })}
+            {adminItems.map((item) => (
+              <NavLink key={item.href} {...item} />
+            ))}
           </>
         )}
       </nav>

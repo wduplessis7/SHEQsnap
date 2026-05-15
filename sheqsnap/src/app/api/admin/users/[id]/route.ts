@@ -20,6 +20,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     email: body.email,
     role: body.role,
     departmentId: body.departmentId || null,
+    companyId: body.companyId ?? undefined,
+    responsiblePersonId: body.responsiblePersonId ?? undefined,
     active: body.active,
   };
 

@@ -13,13 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
-const ROLES = ["ADMIN", "SAFETY_OFFICER", "MANAGER", "REPORTER", "VIEWER"];
+const ROLES = ["ADMIN", "SAFETY_OFFICER", "MANAGER", "REPORTER", "VIEWER", "CONTRACTOR"];
 const ROLE_COLORS: Record<string, any> = {
   ADMIN: "destructive",
   SAFETY_OFFICER: "default",
   MANAGER: "secondary",
   REPORTER: "outline",
   VIEWER: "secondary",
+  CONTRACTOR: "outline",
 };
 
 export default function AdminUsersPage() {

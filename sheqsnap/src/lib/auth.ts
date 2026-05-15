@@ -19,7 +19,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: { department: true },
+          include: { department: true, company: true },
         });
 
         if (!user) {
@@ -45,6 +45,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           role: user.role,
           departmentId: user.departmentId,
+          companyId: user.companyId,
+          responsiblePersonId: user.responsiblePersonId,
         };
       },
     }),
@@ -55,6 +57,8 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as any).role;
         token.departmentId = (user as any).departmentId;
+        token.companyId = (user as any).companyId;
+        token.responsiblePersonId = (user as any).responsiblePersonId;
       }
       return token;
     },
@@ -63,6 +67,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).departmentId = token.departmentId;
+        (session.user as any).companyId = token.companyId;
+        (session.user as any).responsiblePersonId = token.responsiblePersonId;
       }
       return session;
     },
@@ -83,7 +89,7 @@ export function hasRole(userRole: Role, allowedRoles: Role[]): boolean {
 }
 
 export function canEdit(userRole: Role): boolean {
-  return hasRole(userRole, [Role.REPORTER, Role.SAFETY_OFFICER, Role.MANAGER, Role.ADMIN]);
+  return hasRole(userRole, [Role.REPORTER, Role.SAFETY_OFFICER, Role.MANAGER, Role.ADMIN, Role.CONTRACTOR]);
 }
 
 export function canManage(userRole: Role): boolean {

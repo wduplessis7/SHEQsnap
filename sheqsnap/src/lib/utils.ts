@@ -27,12 +27,14 @@ export function isOverdue(dueDate: Date | string | null | undefined, status: str
   return isAfter(new Date(), d);
 }
 
-export async function generateReferenceNo(prefix: string, model: "nearMiss" | "incident" | "action"): Promise<string> {
+export async function generateReferenceNo(prefix: string, model: "nearMiss" | "incident" | "action" | "logEntry"): Promise<string> {
   let count = 0;
   if (model === "nearMiss") {
     count = await prisma.nearMiss.count();
   } else if (model === "incident") {
     count = await prisma.incident.count();
+  } else if (model === "logEntry") {
+    count = await prisma.logEntry.count();
   } else {
     count = await prisma.action.count();
   }
@@ -48,6 +50,7 @@ export const SEVERITY_COLORS = {
 
 export const STATUS_COLORS: Record<string, string> = {
   NEW: "bg-blue-100 text-blue-800",
+  PENDING_APPROVAL: "bg-orange-100 text-orange-800",
   SUBMITTED: "bg-purple-100 text-purple-800",
   UNDER_REVIEW: "bg-indigo-100 text-indigo-800",
   ACTION_REQUIRED: "bg-orange-100 text-orange-800",

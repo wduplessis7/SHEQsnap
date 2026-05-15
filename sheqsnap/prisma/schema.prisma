@@ -15,6 +15,7 @@ enum Role {
   MANAGER
   ADMIN
   VIEWER
+  CONTRACTOR
 }
 
 enum SeverityLevel {
@@ -26,6 +27,7 @@ enum SeverityLevel {
 
 enum NearMissStatus {
   NEW
+  PENDING_APPROVAL
   SUBMITTED
   UNDER_REVIEW
   ACTION_REQUIRED
@@ -36,6 +38,7 @@ enum NearMissStatus {
 
 enum IncidentStatus {
   NEW
+  PENDING_APPROVAL
   SUBMITTED
   UNDER_REVIEW
   ACTION_REQUIRED
@@ -65,6 +68,36 @@ enum LinkedType {
   OTHER
 }
 
+enum ApprovalEntityType {
+  NEAR_MISS
+  INCIDENT
+  ACTION
+  LOG_ENTRY
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LogType {
+  INSPECTION
+  TOOLBOX_TALK
+  MEETING_MINUTES
+  SAFETY_FILE
+  PERMIT
+  INCIDENT_LOG
+  OTHER
+}
+
+enum LogEntryStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  ARCHIVED
+}
+
 model Department {
   id        String   @id @default(cuid())
   name      String
@@ -75,6 +108,8 @@ model Department {
   users      User[]
   nearMisses NearMiss[]
   incidents  Incident[]
+  companies  Company[]
+  logEntries LogEntry[]
 }
 
 model Group {
@@ -99,18 +134,43 @@ model UserGroup {
   @@id([userId, groupId])
 }
 
+model Company {
+  id               String   @id @default(cuid())
+  name             String
+  registrationNo   String?
+  contactName      String?
+  contactEmail     String?
+  contactPhone     String?
+  siteId           String?
+  responsiblePersonId String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  site              Department? @relation(fields: [siteId], references: [id])
+  responsiblePerson User?       @relation("CompanyResponsible", fields: [responsiblePersonId], references: [id])
+  contractors       User[]      @relation("UserCompany")
+  logEntries        LogEntry[]
+}
+
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  password     String
-  role         Role     @default(REPORTER)
-  departmentId String?
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  name                String
+  email               String   @unique
+  password            String
+  role                Role     @default(REPORTER)
+  departmentId        String?
+  companyId           String?
+  responsiblePersonId String?
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   department         Department? @relation(fields: [departmentId], references: [id])
+  company            Company?    @relation("UserCompany", fields: [companyId], references: [id])
+  responsiblePerson  User?       @relation("UserResponsible", fields: [responsiblePersonId], references: [id])
+  supervisedUsers    User[]      @relation("UserResponsible")
+  managedCompanies   Company[]   @relation("CompanyResponsible")
   groups             UserGroup[]
   reportedNearMisses NearMiss[]  @relation("NearMissReporter")
   assignedNearMisses NearMiss[]  @relation("NearMissAssignedUser")
@@ -120,6 +180,11 @@ model User {
   attachments        Attachment[]
   auditLogs          AuditLog[]
   comments           Comment[]
+  requestedApprovals ApprovalRequest[] @relation("ApprovalRequester")
+  assignedApprovals  ApprovalRequest[] @relation("ApprovalAssignee")
+  uploadedLogEntries LogEntry[]  @relation("LogEntryUploader")
+  approvedLogEntries LogEntry[]  @relation("LogEntryApprover")
+  logAttachments     LogAttachment[]
 }
 
 model NearMiss {
@@ -252,4 +317,56 @@ model Comment {
   nearMiss NearMiss? @relation(fields: [nearMissId], references: [id])
   incident Incident? @relation(fields: [incidentId], references: [id])
   action   Action?   @relation(fields: [actionId], references: [id])
+}
+
+model ApprovalRequest {
+  id                 String             @id @default(cuid())
+  entityType         ApprovalEntityType
+  entityId           String
+  requestedById      String
+  assignedApproverId String
+  status             ApprovalStatus     @default(PENDING)
+  rejectionReason    String?
+  decidedAt          DateTime?
+  createdAt          DateTime           @default(now())
+
+  requestedBy      User @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  assignedApprover User @relation("ApprovalAssignee", fields: [assignedApproverId], references: [id])
+}
+
+model LogEntry {
+  id           String         @id @default(cuid())
+  referenceNo  String         @unique
+  title        String
+  logType      LogType
+  companyId    String?
+  departmentId String?
+  entryDate    DateTime
+  description  String
+  uploadedById String
+  status       LogEntryStatus @default(DRAFT)
+  approvedById String?
+  approvedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  company      Company?    @relation(fields: [companyId], references: [id])
+  department   Department? @relation(fields: [departmentId], references: [id])
+  uploadedBy   User        @relation("LogEntryUploader", fields: [uploadedById], references: [id])
+  approvedBy   User?       @relation("LogEntryApprover", fields: [approvedById], references: [id])
+  attachments  LogAttachment[]
+}
+
+model LogAttachment {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  uploadedById String
+  logEntryId   String
+  createdAt    DateTime @default(now())
+
+  uploadedBy User     @relation(fields: [uploadedById], references: [id])
+  logEntry   LogEntry @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
 }

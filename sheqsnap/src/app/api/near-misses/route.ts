@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateReferenceNo, writeAuditLog } from "@/lib/utils";
-import { NearMissStatus, SeverityLevel } from "@prisma/client";
+import { NearMissStatus, SeverityLevel, Role, ApprovalEntityType } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -67,20 +67,25 @@ export async function POST(req: NextRequest) {
 
   const referenceNo = await generateReferenceNo("NM", "nearMiss");
 
+  const isContractor = user.role === Role.CONTRACTOR;
+  const status: NearMissStatus = isContractor
+    ? NearMissStatus.PENDING_APPROVAL
+    : NearMissStatus.NEW;
+
   const nearMiss = await prisma.nearMiss.create({
     data: {
       referenceNo,
       dateReported: body.dateReported ? new Date(body.dateReported) : new Date(),
       reportedById: user.id,
-      departmentId: body.departmentId || null,
+      departmentId: isContractor ? user.departmentId : (body.departmentId || null),
       location: body.location,
       description: body.description,
       riskCategory: body.riskCategory,
       severityLevel: body.severityLevel || "LOW",
       immediateAction: body.immediateAction || null,
-      status: "NEW",
-      assignedUserId: body.assignedUserId || null,
-      assignedGroupId: body.assignedGroupId || null,
+      status,
+      assignedUserId: isContractor ? null : (body.assignedUserId || null),
+      assignedGroupId: isContractor ? null : (body.assignedGroupId || null),
       targetCloseDate: body.targetCloseDate ? new Date(body.targetCloseDate) : null,
     },
     include: {
@@ -89,7 +94,19 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  await writeAuditLog("NearMiss", nearMiss.id, "CREATE", user.id, { referenceNo, status: "NEW" });
+  // Auto-create approval request for contractors
+  if (isContractor && user.responsiblePersonId) {
+    await prisma.approvalRequest.create({
+      data: {
+        entityType: ApprovalEntityType.NEAR_MISS,
+        entityId: nearMiss.id,
+        requestedById: user.id,
+        assignedApproverId: user.responsiblePersonId,
+      },
+    });
+  }
+
+  await writeAuditLog("NearMiss", nearMiss.id, "CREATE", user.id, { referenceNo, status });
 
   return NextResponse.json(nearMiss, { status: 201 });
 }

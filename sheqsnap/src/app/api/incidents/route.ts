@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateReferenceNo, writeAuditLog } from "@/lib/utils";
-import { IncidentStatus, SeverityLevel } from "@prisma/client";
+import { IncidentStatus, SeverityLevel, Role, ApprovalEntityType } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -67,13 +67,18 @@ export async function POST(req: NextRequest) {
 
   const referenceNo = await generateReferenceNo("INC", "incident");
 
+  const isContractor = user.role === Role.CONTRACTOR;
+  const status: IncidentStatus = isContractor
+    ? IncidentStatus.PENDING_APPROVAL
+    : IncidentStatus.NEW;
+
   const incident = await prisma.incident.create({
     data: {
       referenceNo,
       dateOfIncident: new Date(body.dateOfIncident),
       dateReported: body.dateReported ? new Date(body.dateReported) : new Date(),
       reportedById: user.id,
-      departmentId: body.departmentId || null,
+      departmentId: isContractor ? user.departmentId : (body.departmentId || null),
       location: body.location,
       incidentType: body.incidentType,
       description: body.description,
@@ -82,9 +87,9 @@ export async function POST(req: NextRequest) {
       severityLevel: body.severityLevel || "LOW",
       rootCause: body.rootCause || null,
       immediateAction: body.immediateAction || null,
-      status: "NEW",
-      assignedUserId: body.assignedUserId || null,
-      assignedGroupId: body.assignedGroupId || null,
+      status,
+      assignedUserId: isContractor ? null : (body.assignedUserId || null),
+      assignedGroupId: isContractor ? null : (body.assignedGroupId || null),
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
       investigationNotes: body.investigationNotes || null,
     },
@@ -94,9 +99,21 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Auto-create approval request for contractors
+  if (isContractor && user.responsiblePersonId) {
+    await prisma.approvalRequest.create({
+      data: {
+        entityType: ApprovalEntityType.INCIDENT,
+        entityId: incident.id,
+        requestedById: user.id,
+        assignedApproverId: user.responsiblePersonId,
+      },
+    });
+  }
+
   await writeAuditLog("Incident", incident.id, "CREATE", user.id, {
     referenceNo,
-    status: "NEW",
+    status,
   });
 
   return NextResponse.json(incident, { status: 201 });
