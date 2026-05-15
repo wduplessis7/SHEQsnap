@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Search, BookOpen, Users, AlertTriangle, FileWarning, CheckSquare, ClipboardList, ClipboardCheck, HardHat, BarChart3, Settings, Shield, ArrowRight, CheckCircle2, Circle, RefreshCw } from "lucide-react";
+import { Search, BookOpen, Rocket, Users, AlertTriangle, FileWarning, CheckSquare, ClipboardList, ClipboardCheck, HardHat, BarChart3, Settings, Shield, ArrowRight, CheckCircle2, Circle, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
