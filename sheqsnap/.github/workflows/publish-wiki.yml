@@ -1,0 +1,54 @@
+name: Publish Wiki
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'wiki/**'
+  workflow_dispatch:
+
+jobs:
+  publish-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+
+      - name: Setup git
+        run: |
+          git config --global user.email "wduplessis7@gmail.com"
+          git config --global user.name "Werner du Plessis"
+
+      - name: Push wiki content to GitHub Wiki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WIKI_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.wiki.git"
+          
+          # Try to clone existing wiki, or init fresh
+          if git clone "$WIKI_URL" wiki-deploy 2>/dev/null; then
+            echo "Cloned existing wiki"
+          else
+            echo "Wiki repo not initialised yet, creating fresh"
+            mkdir -p wiki-deploy
+            cd wiki-deploy
+            git init
+            git remote add origin "$WIKI_URL"
+            cd ..
+          fi
+          
+          # Copy all wiki markdown files
+          cp wiki/*.md wiki-deploy/
+          
+          cd wiki-deploy
+          git add .
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update SHEQsnap wiki documentation"
+            git push origin HEAD:master || git push -u origin HEAD
+          fi
