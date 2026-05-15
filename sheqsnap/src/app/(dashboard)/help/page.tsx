@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Search, BookOpen, Rocket, Users, LayoutDashboard, AlertTriangle, FileWarning, CheckSquare, ClipboardList, ClipboardCheck, HardHat, BarChart3, Settings, Shield, ArrowRight, CheckCircle2, Circle, RefreshCw } from "lucide-react";
+import { Search, BookOpen, Users, AlertTriangle, FileWarning, CheckSquare, ClipboardList, ClipboardCheck, HardHat, BarChart3, Settings, Shield, ArrowRight, CheckCircle2, Circle, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,7 @@ import { cn } from "@/lib/utils";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   BookOpen,
-  Rocket,
   Users,
-  LayoutDashboard,
   AlertTriangle,
   FileWarning,
   CheckSquare,
@@ -29,7 +27,6 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  "Getting Started": "New to SHEQsnap? Start here to get up and running quickly.",
   "Modules": "Detailed guides for each module in the system.",
   "Administration": "System configuration and user management guides.",
   "Reference": "Compliance, audit trails, and technical reference.",

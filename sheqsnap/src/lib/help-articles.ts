@@ -2,49 +2,13 @@ export interface HelpArticle {
   slug: string;
   title: string;
   description: string;
-  category: "Getting Started" | "Modules" | "Administration" | "Reference";
+  category: "Modules" | "Administration" | "Reference";
   icon: string;
   order: number;
   filename: string; // actual .md filename in src/content/help/
 }
 
 export const helpArticles: HelpArticle[] = [
-  {
-    slug: "overview",
-    title: "SHEQsnap Overview",
-    description: "An introduction to SHEQsnap and what the system does.",
-    category: "Getting Started",
-    icon: "BookOpen",
-    order: 1,
-    filename: "Home.md",
-  },
-  {
-    slug: "getting-started",
-    title: "Getting Started",
-    description: "Step-by-step guide to setting up and using SHEQsnap for the first time.",
-    category: "Getting Started",
-    icon: "Rocket",
-    order: 2,
-    filename: "Getting-Started.md",
-  },
-  {
-    slug: "roles-permissions",
-    title: "User Roles & Permissions",
-    description: "Understand the different user roles and what each can access.",
-    category: "Getting Started",
-    icon: "Users",
-    order: 3,
-    filename: "User-Roles-and-Permissions.md",
-  },
-  {
-    slug: "dashboard",
-    title: "Dashboard Guide",
-    description: "Navigate the dashboard and understand the key metrics and widgets.",
-    category: "Getting Started",
-    icon: "LayoutDashboard",
-    order: 4,
-    filename: "Dashboard.md",
-  },
   {
     slug: "near-misses",
     title: "Near Misses",
@@ -129,7 +93,6 @@ export const helpArticles: HelpArticle[] = [
 ];
 
 export const categories = [
-  "Getting Started",
   "Modules",
   "Administration",
   "Reference",
