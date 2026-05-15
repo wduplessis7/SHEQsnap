@@ -173,9 +173,9 @@ export default function IncidentDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><Label>Date of Incident</Label><Input type="date" value={form.dateOfIncident} onChange={(e) => setField("dateOfIncident", e.target.value)} className="mt-1" /></div>
                   <div><Label>Department</Label>
-                    <Select value={form.departmentId} onValueChange={(v) => setField("departmentId", v)}>
+                    <Select value={form.departmentId || "none"} onValueChange={(v) => setField("departmentId", v === "none" ? "" : v)}>
                       <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent><SelectItem value="">None</SelectItem>{departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+                      <SelectContent><SelectItem value="none">None</SelectItem>{departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div><Label>Location</Label><Input value={form.location} onChange={(e) => setField("location", e.target.value)} className="mt-1" /></div>
@@ -203,9 +203,9 @@ export default function IncidentDetailPage() {
                   <div className="md:col-span-2"><Label>Root Cause</Label><Textarea value={form.rootCause} onChange={(e) => setField("rootCause", e.target.value)} rows={2} className="mt-1" /></div>
                   <div className="md:col-span-2"><Label>Investigation Notes</Label><Textarea value={form.investigationNotes} onChange={(e) => setField("investigationNotes", e.target.value)} rows={3} className="mt-1" /></div>
                   <div><Label>Assign To</Label>
-                    <Select value={form.assignedUserId} onValueChange={(v) => setField("assignedUserId", v)}>
+                    <Select value={form.assignedUserId || "none"} onValueChange={(v) => setField("assignedUserId", v === "none" ? "" : v)}>
                       <SelectTrigger className="mt-1"><SelectValue placeholder="Unassigned" /></SelectTrigger>
-                      <SelectContent><SelectItem value="">Unassigned</SelectItem>{users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                      <SelectContent><SelectItem value="none">Unassigned</SelectItem>{users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div><Label>Due Date</Label><Input type="date" value={form.dueDate} onChange={(e) => setField("dueDate", e.target.value)} className="mt-1" /></div>

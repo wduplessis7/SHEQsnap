@@ -133,6 +133,24 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // Checklist stats
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayEnd = new Date(today)
+  todayEnd.setHours(23, 59, 59, 999)
+
+  const [checklistDueToday, checklistSubmittedToday, checklistOverdue] = await Promise.all([
+    prisma.checklistAssignment.count({
+      where: { dueDate: { gte: today, lte: todayEnd } }
+    }),
+    prisma.checklistAssignment.count({
+      where: { dueDate: { gte: today, lte: todayEnd }, status: 'SUBMITTED' }
+    }),
+    prisma.checklistAssignment.count({
+      where: { dueDate: { lt: today }, status: { not: 'SUBMITTED' } }
+    }),
+  ])
+
   return NextResponse.json({
     kpis: {
       totalNearMisses,
@@ -160,5 +178,11 @@ export async function GET(req: NextRequest) {
     })),
     monthlyTrend,
     recentOverdueActions,
+    checklistStats: {
+      dueToday: checklistDueToday,
+      submittedToday: checklistSubmittedToday,
+      overdue: checklistOverdue,
+      completionRateToday: checklistDueToday > 0 ? Math.round((checklistSubmittedToday / checklistDueToday) * 100) : 0,
+    },
   });
 }

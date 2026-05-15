@@ -183,10 +183,10 @@ export default function AdminUsersPage() {
               </Select>
             </div>
             <div><Label>Department</Label>
-              <Select value={form.departmentId} onValueChange={(v) => setField("departmentId", v)}>
+              <Select value={form.departmentId || "none"} onValueChange={(v) => setField("departmentId", v === "none" ? "" : v)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Select department" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No department</SelectItem>
+                  <SelectItem value="none">No department</SelectItem>
                   {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                 </SelectContent>
               </Select>

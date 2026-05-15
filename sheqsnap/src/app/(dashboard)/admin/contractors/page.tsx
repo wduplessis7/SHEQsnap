@@ -165,20 +165,20 @@ export default function AdminContractorsPage() {
           <div className="space-y-4">
             <div>
               <Label>Company</Label>
-              <Select value={form.companyId} onValueChange={(v) => setField("companyId", v)}>
+              <Select value={form.companyId || "none"} onValueChange={(v) => setField("companyId", v === "none" ? "" : v)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="No company" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No company</SelectItem>
+                  <SelectItem value="none">No company</SelectItem>
                   {companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Responsible Person (Internal Approver)</Label>
-              <Select value={form.responsiblePersonId} onValueChange={(v) => setField("responsiblePersonId", v)}>
+              <Select value={form.responsiblePersonId || "none"} onValueChange={(v) => setField("responsiblePersonId", v === "none" ? "" : v)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="No responsible person" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name} ({u.role.replace(/_/g, " ")})</SelectItem>)}
                 </SelectContent>
               </Select>

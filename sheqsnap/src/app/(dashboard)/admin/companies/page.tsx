@@ -236,20 +236,20 @@ export default function AdminCompaniesPage() {
             </div>
             <div>
               <Label>Assigned Site / Department</Label>
-              <Select value={form.siteId} onValueChange={(v) => setField("siteId", v)}>
+              <Select value={form.siteId || "none"} onValueChange={(v) => setField("siteId", v === "none" ? "" : v)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="No site" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No site</SelectItem>
+                  <SelectItem value="none">No site</SelectItem>
                   {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Responsible Person (Internal)</Label>
-              <Select value={form.responsiblePersonId} onValueChange={(v) => setField("responsiblePersonId", v)}>
+              <Select value={form.responsiblePersonId || "none"} onValueChange={(v) => setField("responsiblePersonId", v === "none" ? "" : v)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="No responsible person" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name} ({u.role.replace(/_/g, " ")})</SelectItem>)}
                 </SelectContent>
               </Select>

@@ -32,6 +32,7 @@ import {
   RefreshCw,
   BookOpen,
   ClipboardCheck,
+  ClipboardList,
   HelpCircle,
 } from "lucide-react";
 import { formatDate, isOverdue, STATUS_COLORS, SEVERITY_COLORS } from "@/lib/utils";
@@ -69,6 +70,12 @@ interface Stats {
   actionsByStatus: Array<{ status: string; count: number }>;
   monthlyTrend: Array<{ month: string; nearMisses: number; incidents: number }>;
   recentOverdueActions: any[];
+  checklistStats?: {
+    dueToday: number;
+    submittedToday: number;
+    overdue: number;
+    completionRateToday: number;
+  };
 }
 
 export default function DashboardPage() {
@@ -215,6 +222,42 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      {/* Checklists Today Widget */}
+      <Link href="/checklists">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-500">Checklists Today</p>
+                {!stats.checklistStats || stats.checklistStats.dueToday === 0 ? (
+                  <p className="text-sm text-gray-400 mt-1">No checklists due today</p>
+                ) : (
+                  <>
+                    <p className="text-3xl font-bold mt-1 text-green-600">
+                      {stats.checklistStats.submittedToday} / {stats.checklistStats.dueToday}{" "}
+                      <span className="text-base font-medium text-gray-500">completed</span>
+                    </p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-sm text-gray-500">
+                        {stats.checklistStats.completionRateToday}% completion rate
+                      </span>
+                      {stats.checklistStats.overdue > 0 && (
+                        <span className="text-sm font-medium text-orange-600">
+                          ⚠ {stats.checklistStats.overdue} overdue
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="p-3 rounded-xl bg-green-50 ml-4 shrink-0">
+                <ClipboardList className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
 
       {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

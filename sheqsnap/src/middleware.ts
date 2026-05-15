@@ -28,5 +28,6 @@ export const config = {
     "/actions/:path*",
     "/reports/:path*",
     "/admin/:path*",
+    "/checklists/:path*",
   ],
 };

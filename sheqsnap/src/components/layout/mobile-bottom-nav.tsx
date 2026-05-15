@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, AlertTriangle, FileWarning, CheckSquare, HelpCircle } from "lucide-react";
+import { LayoutDashboard, AlertTriangle, FileWarning, CheckSquare, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const bottomNavItems = [
@@ -10,7 +10,7 @@ const bottomNavItems = [
   { href: "/near-misses", label: "Near Misses", icon: AlertTriangle },
   { href: "/incidents", label: "Incidents", icon: FileWarning },
   { href: "/actions", label: "Actions", icon: CheckSquare },
-  { href: "/help", label: "Help", icon: HelpCircle },
+  { href: "/checklists", label: "Checklists", icon: ClipboardList },
 ];
 
 export function MobileBottomNav() {

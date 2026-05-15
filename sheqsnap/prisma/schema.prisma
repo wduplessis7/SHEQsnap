@@ -123,6 +123,7 @@ model Group {
   assignedNearMisses NearMiss[] @relation("NearMissAssignedGroup")
   assignedIncidents  Incident[] @relation("IncidentAssignedGroup")
   assignedActions    Action[]   @relation("ActionAssignedGroup")
+  checklistSchedules ChecklistSchedule[] @relation("ScheduleAssignedGroup")
 }
 
 model UserGroup {
@@ -186,6 +187,11 @@ model User {
   approvedLogEntries  LogEntry[]          @relation("LogEntryApprover")
   logAttachments      LogAttachment[]
   onboardingProgress  OnboardingProgress?
+  checklistTemplates  ChecklistTemplate[] @relation("ChecklistTemplateCreator")
+  schedulesCreated    ChecklistSchedule[] @relation("ScheduleCreator")
+  schedulesAssigned   ChecklistSchedule[] @relation("ScheduleAssignedUser")
+  checklistAssignments ChecklistAssignment[] @relation("AssignmentUser")
+  checklistSubmissions ChecklistSubmission[] @relation("SubmissionUser")
 }
 
 model NearMiss {
@@ -380,4 +386,125 @@ model OnboardingProgress {
   completedAt    DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+// ─── Checklist System ────────────────────────────────────────────────────────
+
+enum ChecklistItemType {
+  CHECKBOX
+  YES_NO
+  TEXT
+  RATING
+  PHOTO
+}
+
+enum ChecklistRecurrence {
+  ONCE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum ChecklistAssignmentStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  OVERDUE
+}
+
+model ChecklistTemplate {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String   @default("General")
+  isActive    Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy   User                    @relation("ChecklistTemplateCreator", fields: [createdById], references: [id])
+  items       ChecklistTemplateItem[]
+  schedules   ChecklistSchedule[]
+  assignments ChecklistAssignment[]
+}
+
+model ChecklistTemplateItem {
+  id          String            @id @default(cuid())
+  templateId  String
+  order       Int
+  label       String
+  type        ChecklistItemType @default(CHECKBOX)
+  required    Boolean           @default(true)
+  description String?
+  createdAt   DateTime          @default(now())
+
+  template  ChecklistTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  responses ChecklistItemResponse[]
+}
+
+model ChecklistSchedule {
+  id                String              @id @default(cuid())
+  templateId        String
+  assignedToUserId  String?
+  assignedToGroupId String?
+  startDate         DateTime
+  dueTime           String              @default("17:00")
+  recurrence        ChecklistRecurrence @default(ONCE)
+  weekDay           Int?
+  monthDay          Int?
+  endDate           DateTime?
+  isActive          Boolean             @default(true)
+  createdById       String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  template        ChecklistTemplate    @relation(fields: [templateId], references: [id])
+  assignedToUser  User?                @relation("ScheduleAssignedUser", fields: [assignedToUserId], references: [id])
+  assignedToGroup Group?               @relation("ScheduleAssignedGroup", fields: [assignedToGroupId], references: [id])
+  createdBy       User                 @relation("ScheduleCreator", fields: [createdById], references: [id])
+  assignments     ChecklistAssignment[]
+}
+
+model ChecklistAssignment {
+  id                    String                    @id @default(cuid())
+  scheduleId            String
+  templateId            String
+  assignedToUserId      String
+  dueDate               DateTime
+  status                ChecklistAssignmentStatus @default(PENDING)
+  reminderSentDayBefore Boolean                   @default(false)
+  reminderSentDayOf     Boolean                   @default(false)
+  submittedAt           DateTime?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  schedule       ChecklistSchedule    @relation(fields: [scheduleId], references: [id])
+  template       ChecklistTemplate    @relation(fields: [templateId], references: [id])
+  assignedToUser User                 @relation("AssignmentUser", fields: [assignedToUserId], references: [id])
+  submission     ChecklistSubmission?
+}
+
+model ChecklistSubmission {
+  id            String   @id @default(cuid())
+  assignmentId  String   @unique
+  submittedById String
+  notes         String?
+  submittedAt   DateTime @default(now())
+
+  assignment  ChecklistAssignment    @relation(fields: [assignmentId], references: [id])
+  submittedBy User                   @relation("SubmissionUser", fields: [submittedById], references: [id])
+  responses   ChecklistItemResponse[]
+}
+
+model ChecklistItemResponse {
+  id             String   @id @default(cuid())
+  submissionId   String
+  templateItemId String
+  value          String?
+  passed         Boolean?
+  photoPath      String?
+  createdAt      DateTime @default(now())
+
+  submission   ChecklistSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  templateItem ChecklistTemplateItem @relation(fields: [templateItemId], references: [id])
 }

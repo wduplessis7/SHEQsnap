@@ -13,6 +13,7 @@ import {
   Shield,
   BookOpen,
   ClipboardCheck,
+  ClipboardList,
   Building2,
   HardHat,
   HelpCircle,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/incidents", label: "Incidents", icon: FileWarning },
   { href: "/actions", label: "Actions", icon: CheckSquare },
   { href: "/logs", label: "Log Register", icon: BookOpen },
+  { href: "/checklists", label: "Checklists", icon: ClipboardList },
 ];
 
 const approverNavItems = [
@@ -34,9 +36,10 @@ const approverNavItems = [
 ];
 
 const adminItems = [
-  { href: "/admin", label: "Admin", icon: Settings },
+  { href: "/admin", label: "Admin", icon: Settings, exact: true },
   { href: "/admin/companies", label: "Companies", icon: Building2 },
   { href: "/admin/contractors", label: "Contractors", icon: HardHat },
+  { href: "/admin/checklists", label: "Checklist Mgmt", icon: ClipboardCheck },
 ];
 
 interface SidebarProps {
@@ -76,13 +79,17 @@ export function Sidebar({ onClose }: SidebarProps) {
     label,
     icon: Icon,
     badge,
+    exact,
   }: {
     href: string;
     label: string;
     icon: React.ComponentType<any>;
     badge?: number;
+    exact?: boolean;
   }) {
-    const isActive = pathname === href || pathname.startsWith(href + "/");
+    const isActive = exact
+      ? pathname === href
+      : pathname === href || pathname.startsWith(href + "/");
     return (
       <Link
         href={href}
@@ -128,9 +135,11 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
-        {navItems.map((item) => (
-          <NavLink key={item.href} {...item} />
-        ))}
+        {navItems
+          .filter((item) => !(isContractor && item.href === "/checklists"))
+          .map((item) => (
+            <NavLink key={item.href} {...item} />
+          ))}
 
         {/* Approvals — only for non-contractors with approver role */}
         {isApprover && (

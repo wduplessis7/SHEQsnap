@@ -146,10 +146,10 @@ export default function NewActionPage() {
             </div>
             <div>
               <Label>Assign to Group</Label>
-              <Select value={form.assignedGroupId} onValueChange={(v) => setField("assignedGroupId", v)}>
+              <Select value={form.assignedGroupId || "none"} onValueChange={(v) => setField("assignedGroupId", v === "none" ? "" : v)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Optional group" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No group</SelectItem>
+                  <SelectItem value="none">No group</SelectItem>
                   {groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                 </SelectContent>
               </Select>

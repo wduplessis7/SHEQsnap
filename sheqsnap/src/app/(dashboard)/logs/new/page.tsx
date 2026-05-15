@@ -151,12 +151,12 @@ export default function NewLogEntryPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Company (optional)</Label>
-                <Select value={form.companyId} onValueChange={(v) => setField("companyId", v)}>
+                <Select value={form.companyId || "none"} onValueChange={(v) => setField("companyId", v === "none" ? "" : v)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="No company" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No company</SelectItem>
+                    <SelectItem value="none">No company</SelectItem>
                     {companies.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
@@ -165,12 +165,12 @@ export default function NewLogEntryPage() {
               </div>
               <div>
                 <Label>Department (optional)</Label>
-                <Select value={form.departmentId} onValueChange={(v) => setField("departmentId", v)}>
+                <Select value={form.departmentId || "none"} onValueChange={(v) => setField("departmentId", v === "none" ? "" : v)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="No department" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No department</SelectItem>
+                    <SelectItem value="none">No department</SelectItem>
                     {departments.map((d) => (
                       <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                     ))}
