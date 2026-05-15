@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./topbar";
+import { MobileBottomNav } from "./mobile-bottom-nav";
+import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { cn } from "@/lib/utils";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -25,16 +27,22 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <Sidebar />
+        <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main content */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         <TopBar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Mobile bottom nav */}
+      <MobileBottomNav />
+
+      {/* Onboarding modal */}
+      <OnboardingModal />
     </div>
   );
 }

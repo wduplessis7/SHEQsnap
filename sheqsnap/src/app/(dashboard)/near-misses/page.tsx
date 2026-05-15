@@ -152,12 +152,12 @@ export default function NearMissesPage() {
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Reference</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Department</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Location</th>
+                <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Department</th>
+                <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Location</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Severity</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Assigned To</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Target Date</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Assigned To</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Target Date</th>
               </tr>
             </thead>
             <tbody>
@@ -193,16 +193,16 @@ export default function NearMissesPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-gray-600">{formatDate(item.dateReported)}</td>
-                      <td className="px-4 py-3 text-gray-600">{item.department?.name || "—"}</td>
-                      <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{item.location}</td>
+                      <td className="hidden md:table-cell px-4 py-3 text-gray-600">{item.department?.name || "—"}</td>
+                      <td className="hidden md:table-cell px-4 py-3 text-gray-600 max-w-xs truncate">{item.location}</td>
                       <td className="px-4 py-3">
                         <SeverityBadge severity={item.severityLevel} />
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={item.status} />
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{item.assignedUser?.name || item.assignedGroup?.name || "—"}</td>
-                      <td className={cn("px-4 py-3", overdue ? "text-red-600 font-medium" : "text-gray-600")}>
+                      <td className="hidden sm:table-cell px-4 py-3 text-gray-600">{item.assignedUser?.name || item.assignedGroup?.name || "—"}</td>
+                      <td className={cn("hidden sm:table-cell px-4 py-3", overdue ? "text-red-600 font-medium" : "text-gray-600")}>
                         {formatDate(item.targetCloseDate)}
                         {overdue && <span className="ml-1 text-xs">(Overdue)</span>}
                       </td>

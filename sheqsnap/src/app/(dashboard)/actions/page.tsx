@@ -143,12 +143,12 @@ export default function ActionsPage() {
             <thead className="border-b bg-gray-50">
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Reference</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Description</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Owner</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Description</th>
+                <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Owner</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Priority</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Due Date</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Due Date</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Linked To</th>
+                <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Linked To</th>
               </tr>
             </thead>
             <tbody>
@@ -167,15 +167,15 @@ export default function ActionsPage() {
                           <Link href={`/actions/${item.id}`} className="font-semibold text-blue-600 hover:underline">{item.referenceNo}</Link>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-700 max-w-xs truncate">{item.description}</td>
-                      <td className="px-4 py-3 text-gray-600">{item.owner?.name}</td>
+                      <td className="hidden sm:table-cell px-4 py-3 text-gray-700 max-w-xs truncate">{item.description}</td>
+                      <td className="hidden md:table-cell px-4 py-3 text-gray-600">{item.owner?.name}</td>
                       <td className="px-4 py-3"><SeverityBadge severity={item.priority} /></td>
-                      <td className={cn("px-4 py-3", overdue ? "text-red-600 font-medium" : "text-gray-600")}>
+                      <td className={cn("hidden sm:table-cell px-4 py-3", overdue ? "text-red-600 font-medium" : "text-gray-600")}>
                         {formatDate(item.dueDate)}
                         {overdue && <span className="ml-1 text-xs">(Overdue)</span>}
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">
+                      <td className="hidden md:table-cell px-4 py-3 text-gray-500 text-xs">
                         {item.linkedNearMiss ? (
                           <Link href={`/near-misses/${item.linkedNearMiss.id}`} className="text-blue-500 hover:underline">{item.linkedNearMiss.referenceNo}</Link>
                         ) : item.linkedIncident ? (

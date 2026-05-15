@@ -131,13 +131,13 @@ export default function IncidentsPage() {
             <thead className="border-b bg-gray-50">
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Reference</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Date of Incident</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Type</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Department</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
+                <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Type</th>
+                <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Department</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Severity</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Assigned To</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Due Date</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Assigned To</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Due Date</th>
               </tr>
             </thead>
             <tbody>
@@ -154,12 +154,12 @@ export default function IncidentsPage() {
                         <Link href={`/incidents/${item.id}`} className="font-semibold text-blue-600 hover:underline">{item.referenceNo}</Link>
                       </td>
                       <td className="px-4 py-3 text-gray-600">{formatDate(item.dateOfIncident)}</td>
-                      <td className="px-4 py-3 text-gray-600">{item.incidentType}</td>
-                      <td className="px-4 py-3 text-gray-600">{item.department?.name || "—"}</td>
+                      <td className="hidden md:table-cell px-4 py-3 text-gray-600">{item.incidentType}</td>
+                      <td className="hidden md:table-cell px-4 py-3 text-gray-600">{item.department?.name || "—"}</td>
                       <td className="px-4 py-3"><SeverityBadge severity={item.severityLevel} /></td>
                       <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
-                      <td className="px-4 py-3 text-gray-600">{item.assignedUser?.name || "—"}</td>
-                      <td className={cn("px-4 py-3", overdue ? "text-red-600 font-medium" : "text-gray-600")}>
+                      <td className="hidden sm:table-cell px-4 py-3 text-gray-600">{item.assignedUser?.name || "—"}</td>
+                      <td className={cn("hidden sm:table-cell px-4 py-3", overdue ? "text-red-600 font-medium" : "text-gray-600")}>
                         {formatDate(item.dueDate)}
                         {overdue && <span className="ml-1 text-xs">(Overdue)</span>}
                       </td>

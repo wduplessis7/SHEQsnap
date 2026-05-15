@@ -182,9 +182,10 @@ model User {
   comments           Comment[]
   requestedApprovals ApprovalRequest[] @relation("ApprovalRequester")
   assignedApprovals  ApprovalRequest[] @relation("ApprovalAssignee")
-  uploadedLogEntries LogEntry[]  @relation("LogEntryUploader")
-  approvedLogEntries LogEntry[]  @relation("LogEntryApprover")
-  logAttachments     LogAttachment[]
+  uploadedLogEntries  LogEntry[]          @relation("LogEntryUploader")
+  approvedLogEntries  LogEntry[]          @relation("LogEntryApprover")
+  logAttachments      LogAttachment[]
+  onboardingProgress  OnboardingProgress?
 }
 
 model NearMiss {
@@ -369,4 +370,14 @@ model LogAttachment {
 
   uploadedBy User     @relation(fields: [uploadedById], references: [id])
   logEntry   LogEntry @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+}
+
+model OnboardingProgress {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id])
+  completedSteps String    // JSON array of completed step IDs
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }

@@ -16,6 +16,7 @@ import {
   Building2,
   HardHat,
   HelpCircle,
+  X,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -38,7 +39,11 @@ const adminItems = [
   { href: "/admin/contractors", label: "Contractors", icon: HardHat },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const userRole = (session?.user as any)?.role;
@@ -62,19 +67,30 @@ export function Sidebar() {
       }
     };
     fetchCount();
-    const interval = setInterval(fetchCount, 60000); // refresh every minute
+    const interval = setInterval(fetchCount, 60000);
     return () => clearInterval(interval);
   }, [isApprover]);
 
-  function NavLink({ href, label, icon: Icon, badge }: { href: string; label: string; icon: React.ComponentType<any>; badge?: number }) {
+  function NavLink({
+    href,
+    label,
+    icon: Icon,
+    badge,
+  }: {
+    href: string;
+    label: string;
+    icon: React.ComponentType<any>;
+    badge?: number;
+  }) {
     const isActive = pathname === href || pathname.startsWith(href + "/");
     return (
       <Link
         href={href}
+        onClick={onClose}
         className={cn(
           "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
           isActive
-            ? "bg-blue-600 text-white"
+            ? "bg-green-600 text-white"
             : "text-gray-300 hover:bg-gray-800 hover:text-white"
         )}
       >
@@ -92,16 +108,26 @@ export function Sidebar() {
   return (
     <div className="flex h-full flex-col bg-gray-900 text-white">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 px-6 border-b border-gray-700">
-        <Shield className="h-8 w-8 text-blue-400" />
-        <div>
+      <div className="flex h-16 items-center gap-2 px-4 lg:px-6 border-b border-gray-700">
+        <Shield className="h-8 w-8 text-green-400 shrink-0" />
+        <div className="flex-1 min-w-0">
           <span className="text-lg font-bold text-white">SHEQsnap</span>
           <p className="text-xs text-gray-400">Safety Management</p>
         </div>
+        {/* Close button — mobile only */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden ml-2 p-1 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink key={item.href} {...item} />
         ))}
