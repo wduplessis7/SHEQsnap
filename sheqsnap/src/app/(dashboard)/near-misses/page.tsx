@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Search, Filter, RefreshCw } from "lucide-react";
+import { Plus, Search, Filter, RefreshCw, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -73,7 +73,12 @@ export default function NearMissesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Near Misses</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Near Misses</h1>
+            <Link href="/help/near-misses" className="text-gray-400 hover:text-blue-600 transition-colors" title="Help: Near Misses">
+              <HelpCircle className="h-5 w-5" />
+            </Link>
+          </div>
           <p className="text-gray-500 mt-1">{total} record{total !== 1 ? "s" : ""}</p>
         </div>
         <Link href="/near-misses/new">

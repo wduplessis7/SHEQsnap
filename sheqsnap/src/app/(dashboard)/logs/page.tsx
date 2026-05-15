@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, RefreshCw, BookOpen, Search } from "lucide-react";
+import { Plus, RefreshCw, BookOpen, Search, HelpCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 
@@ -101,7 +101,12 @@ export default function LogsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Log Register</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Log Register</h1>
+            <Link href="/help/log-register" className="text-gray-400 hover:text-blue-600 transition-colors" title="Help: Log Register">
+              <HelpCircle className="h-5 w-5" />
+            </Link>
+          </div>
           <p className="text-gray-500 mt-1">{total} log {total !== 1 ? "entries" : "entry"}</p>
         </div>
         <div className="flex gap-2">

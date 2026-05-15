@@ -32,6 +32,7 @@ import {
   RefreshCw,
   BookOpen,
   ClipboardCheck,
+  HelpCircle,
 } from "lucide-react";
 import { formatDate, isOverdue, STATUS_COLORS, SEVERITY_COLORS } from "@/lib/utils";
 import Link from "next/link";
@@ -166,7 +167,12 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <Link href="/help/dashboard" className="text-gray-400 hover:text-blue-600 transition-colors" title="Help: Dashboard">
+              <HelpCircle className="h-5 w-5" />
+            </Link>
+          </div>
           <p className="text-gray-500 mt-1">Safety performance overview</p>
         </div>
         <div className="flex items-center gap-3">

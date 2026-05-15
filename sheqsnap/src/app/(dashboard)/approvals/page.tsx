@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, CheckCircle, XCircle, Clock } from "lucide-react";
+import Link from "next/link";
+import { RefreshCw, CheckCircle, XCircle, Clock, HelpCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 const LOG_TYPE_LABELS: Record<string, string> = {
@@ -122,7 +123,12 @@ export default function ApprovalsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Approvals Queue</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Approvals Queue</h1>
+            <Link href="/help/approvals" className="text-gray-400 hover:text-blue-600 transition-colors" title="Help: Approvals">
+              <HelpCircle className="h-5 w-5" />
+            </Link>
+          </div>
           <p className="text-gray-500 mt-1">
             {loading ? "Loading..." : `${approvals.length} pending approval${approvals.length !== 1 ? "s" : ""}`}
           </p>

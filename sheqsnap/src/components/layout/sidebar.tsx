@@ -15,6 +15,7 @@ import {
   ClipboardCheck,
   Building2,
   HardHat,
+  HelpCircle,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -135,6 +136,11 @@ export function Sidebar() {
           </>
         )}
       </nav>
+
+      {/* Help — always visible */}
+      <div className="px-3 pb-3">
+        <NavLink href="/help" label="Help Centre" icon={HelpCircle} />
+      </div>
 
       {/* Footer */}
       <div className="border-t border-gray-700 p-4">

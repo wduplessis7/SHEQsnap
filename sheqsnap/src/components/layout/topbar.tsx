@@ -1,7 +1,8 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
-import { Bell, LogOut, User, ChevronDown, Menu } from "lucide-react";
+import { Bell, LogOut, ChevronDown, Menu, HelpCircle } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -67,6 +68,13 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Help */}
+        <Link href="/help">
+          <Button variant="ghost" size="icon" title="Help Centre">
+            <HelpCircle className="h-5 w-5" />
+          </Button>
+        </Link>
+
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />

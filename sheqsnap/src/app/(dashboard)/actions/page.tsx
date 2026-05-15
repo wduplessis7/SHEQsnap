@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Plus, Search, RefreshCw, AlertTriangle } from "lucide-react";
+import { Plus, Search, RefreshCw, AlertTriangle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -73,7 +73,12 @@ export default function ActionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Actions</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Actions</h1>
+            <Link href="/help/actions" className="text-gray-400 hover:text-blue-600 transition-colors" title="Help: Actions">
+              <HelpCircle className="h-5 w-5" />
+            </Link>
+          </div>
           <p className="text-gray-500 mt-1">{total} action{total !== 1 ? "s" : ""}</p>
         </div>
         <Link href="/actions/new">
