@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import { subMonths, startOfMonth, endOfMonth, format } from "date-fns";
+import { subMonths, subWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, format } from "date-fns";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -133,6 +133,24 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // Weekly incident trend (last 8 weeks)
+  const weeklyTrend = [];
+  for (let i = 7; i >= 0; i--) {
+    const weekDate = subWeeks(new Date(), i);
+    const start = startOfWeek(weekDate, { weekStartsOn: 1 });
+    const end = endOfWeek(weekDate, { weekStartsOn: 1 });
+    const inc = await prisma.incident.count({
+      where: {
+        dateOfIncident: { gte: start, lte: end },
+        ...(departmentId ? { departmentId } : {}),
+      },
+    });
+    weeklyTrend.push({
+      week: format(start, "dd MMM"),
+      incidents: inc,
+    });
+  }
+
   // Checklist stats
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -150,6 +168,25 @@ export async function GET(req: NextRequest) {
       where: { dueDate: { lt: today }, status: { not: 'SUBMITTED' } }
     }),
   ])
+
+  // License stats
+  const now = new Date();
+  const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const [expiredLicenses, expiringSoonLicenses] = await Promise.all([
+    prisma.license.count({ where: { expiryDate: { lt: now } } }),
+    prisma.license.count({ where: { expiryDate: { gte: now, lte: in30Days } } }),
+  ]);
+
+  // BBS stats
+  const [bbsOpenObservations, bbsOverdueActions] = await Promise.all([
+    prisma.behaviourObservation.count({ where: { status: "OPEN" } }),
+    prisma.behaviourAction.count({
+      where: {
+        dueDate: { lt: now },
+        status: { not: "CLOSED" },
+      },
+    }),
+  ]);
 
   return NextResponse.json({
     kpis: {
@@ -177,6 +214,7 @@ export async function GET(req: NextRequest) {
       count: r._count,
     })),
     monthlyTrend,
+    weeklyTrend,
     recentOverdueActions,
     checklistStats: {
       dueToday: checklistDueToday,
@@ -184,5 +222,8 @@ export async function GET(req: NextRequest) {
       overdue: checklistOverdue,
       completionRateToday: checklistDueToday > 0 ? Math.round((checklistSubmittedToday / checklistDueToday) * 100) : 0,
     },
+    expiringLicenses: expiredLicenses + expiringSoonLicenses,
+    openObservations: bbsOpenObservations,
+    overdueObservationActions: bbsOverdueActions,
   });
 }

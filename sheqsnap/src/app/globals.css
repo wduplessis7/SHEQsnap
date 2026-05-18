@@ -4,7 +4,11 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1a1a;
+  --primary: #FFFC41;
+  --primary-foreground: #1a1a1a;
+  --accent-green: #4CAF50;
+  --sidebar-bg: #1A1A1A;
 }
 
 @media (prefers-color-scheme: dark) {

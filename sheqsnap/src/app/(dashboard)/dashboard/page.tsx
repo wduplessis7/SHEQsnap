@@ -34,6 +34,8 @@ import {
   ClipboardCheck,
   ClipboardList,
   HelpCircle,
+  FileCheck,
+  Eye,
 } from "lucide-react";
 import { formatDate, isOverdue, STATUS_COLORS, SEVERITY_COLORS } from "@/lib/utils";
 import Link from "next/link";
@@ -69,6 +71,7 @@ interface Stats {
   nearMissesByDepartment: Array<{ department: string; count: number }>;
   actionsByStatus: Array<{ status: string; count: number }>;
   monthlyTrend: Array<{ month: string; nearMisses: number; incidents: number }>;
+  weeklyTrend: Array<{ week: string; incidents: number }>;
   recentOverdueActions: any[];
   checklistStats?: {
     dueToday: number;
@@ -76,6 +79,9 @@ interface Stats {
     overdue: number;
     completionRateToday: number;
   };
+  expiringLicenses?: number;
+  openObservations?: number;
+  overdueObservationActions?: number;
 }
 
 export default function DashboardPage() {
@@ -259,6 +265,68 @@ export default function DashboardPage() {
         </Card>
       </Link>
 
+      {/* License Alerts Widget */}
+      <Link href="/licenses">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-500">License Alerts</p>
+                {!stats.expiringLicenses || stats.expiringLicenses === 0 ? (
+                  <p className="text-sm text-gray-400 mt-1">All licenses are up to date</p>
+                ) : (
+                  <>
+                    <p className={`text-3xl font-bold mt-1 ${stats.expiringLicenses > 0 ? "text-red-600" : "text-green-600"}`}>
+                      {stats.expiringLicenses}{" "}
+                      <span className="text-base font-medium text-gray-500">
+                        license{stats.expiringLicenses !== 1 ? "s" : ""} need attention
+                      </span>
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Expired or expiring within 30 days — click to view
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className={`p-3 rounded-xl ml-4 shrink-0 ${stats.expiringLicenses && stats.expiringLicenses > 0 ? "bg-red-50" : "bg-green-50"}`}>
+                <FileCheck className={`h-6 w-6 ${stats.expiringLicenses && stats.expiringLicenses > 0 ? "text-red-600" : "text-green-600"}`} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+
+      {/* Behaviour Observations Widget */}
+      <Link href="/observations">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-500">Behaviour Observations</p>
+                {stats.openObservations == null || stats.openObservations === 0 ? (
+                  <p className="text-sm text-gray-400 mt-1">No open observations</p>
+                ) : (
+                  <>
+                    <p className="text-3xl font-bold mt-1 text-blue-600">
+                      {stats.openObservations}{" "}
+                      <span className="text-base font-medium text-gray-500">open</span>
+                    </p>
+                    {stats.overdueObservationActions != null && stats.overdueObservationActions > 0 && (
+                      <p className="text-sm font-medium text-orange-600 mt-1">
+                        ⚠ {stats.overdueObservationActions} overdue action{stats.overdueObservationActions !== 1 ? "s" : ""}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className={`p-3 rounded-xl ml-4 shrink-0 ${stats.overdueObservationActions && stats.overdueObservationActions > 0 ? "bg-orange-50" : "bg-blue-50"}`}>
+                <Eye className={`h-6 w-6 ${stats.overdueObservationActions && stats.overdueObservationActions > 0 ? "text-orange-600" : "text-blue-600"}`} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+
       {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Incidents by Severity */}
@@ -389,6 +457,35 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Weekly Incident Trend */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-red-500" />
+            Incidents per Week — Last 8 Weeks
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={stats.weeklyTrend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="incidents"
+                name="Incidents"
+                stroke="#ef4444"
+                strokeWidth={2}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Recent Overdue Actions */}
       {stats.recentOverdueActions.length > 0 && (

@@ -89,7 +89,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 px-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-sm font-medium">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFFC41] text-[#1A1A1A] text-sm font-medium">
                 {user?.name?.charAt(0).toUpperCase() || "U"}
               </div>
               <div className="hidden sm:block text-left">

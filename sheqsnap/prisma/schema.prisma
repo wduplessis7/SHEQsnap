@@ -508,3 +508,89 @@ model ChecklistItemResponse {
   submission   ChecklistSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   templateItem ChecklistTemplateItem @relation(fields: [templateItemId], references: [id])
 }
+
+// ─── License Manager ─────────────────────────────────────────────────────────
+
+model License {
+  id            String    @id @default(cuid())
+  holderName    String
+  holderType    String    // "employee" | "contractor"
+  licenseType   String
+  licenseNumber String?
+  issuedDate    DateTime?
+  expiryDate    DateTime
+  status        String    @default("active") // "active" | "expiring_soon" | "expired"
+  reminderSent  Boolean   @default(false)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ─── Behaviour-Based Safety (BBS) ────────────────────────────────────────────
+
+model BehaviourObservation {
+  id                    String   @id @default(cuid())
+  observationDate       DateTime
+  location              String
+  site                  String?
+  shaft                 String?
+  plant                 String?
+  observerName          String
+  observerDepartment    String?
+  observerId            String?
+  teamObserved          String?
+  contractorObserved    String?
+  employeeObserved      String?
+  workType              String   // ROUTINE | NON_ROUTINE | MAINTENANCE
+  taskDescription       String
+  workContext           String?
+  safeBehaviours        String?  // JSON array of strings
+  unsafeBehaviours      String?  // JSON array of strings
+  hazardsPresent        String?
+  potentialConsequences String?
+  riskLevel             String?  // LOW | MEDIUM | HIGH
+  likelihoodScore       Int?
+  impactScore           Int?
+  riskScore             Int?
+  immediateActionTaken  String?
+  workStopped           Boolean  @default(false)
+  supervisorNotified    Boolean  @default(false)
+  rootCauses            String?  // JSON array of strings
+  workerEngaged         Boolean  @default(false)
+  workerFeedback        String?
+  safetyCategory        String?  // PPE | HOUSEKEEPING | EQUIPMENT | PROCEDURE | ENVIRONMENT | ERGONOMICS | OTHER
+  behaviourType         String?
+  status                String   @default("OPEN") // OPEN | IN_PROGRESS | CLOSED
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  createdById           String?
+
+  actions               BehaviourAction[]
+  evidence              ObservationEvidence[]
+}
+
+model BehaviourAction {
+  id                String   @id @default(cuid())
+  observationId     String
+  description       String
+  responsiblePerson String
+  dueDate           DateTime
+  status            String   @default("OPEN") // OPEN | IN_PROGRESS | CLOSED
+  closedAt          DateTime?
+  closedNote        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  observation       BehaviourObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+}
+
+model ObservationEvidence {
+  id            String   @id @default(cuid())
+  observationId String
+  fileName      String
+  fileUrl       String
+  fileType      String?
+  uploadedAt    DateTime @default(now())
+
+  observation   BehaviourObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+}

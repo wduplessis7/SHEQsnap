@@ -18,6 +18,8 @@ import {
   HardHat,
   HelpCircle,
   X,
+  FileCheck,
+  Eye,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -29,6 +31,8 @@ const navItems = [
   { href: "/actions", label: "Actions", icon: CheckSquare },
   { href: "/logs", label: "Log Register", icon: BookOpen },
   { href: "/checklists", label: "Checklists", icon: ClipboardList },
+  { href: "/licenses", label: "Licenses", icon: FileCheck },
+  { href: "/observations", label: "Behaviour Obs.", icon: Eye },
 ];
 
 const approverNavItems = [
@@ -55,6 +59,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const isApprover = ["SAFETY_OFFICER", "MANAGER", "ADMIN"].includes(userRole);
 
   const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [licenseAlerts, setLicenseAlerts] = useState(0);
 
   useEffect(() => {
     if (!isApprover) return;
@@ -73,6 +78,23 @@ export function Sidebar({ onClose }: SidebarProps) {
     const interval = setInterval(fetchCount, 60000);
     return () => clearInterval(interval);
   }, [isApprover]);
+
+  useEffect(() => {
+    const fetchLicenseAlerts = async () => {
+      try {
+        const res = await fetch("/api/licenses/expiring");
+        if (res.ok) {
+          const data = await res.json();
+          setLicenseAlerts(data.summary?.totalAlerts || 0);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchLicenseAlerts();
+    const interval = setInterval(fetchLicenseAlerts, 300000); // every 5 min
+    return () => clearInterval(interval);
+  }, []);
 
   function NavLink({
     href,
@@ -97,8 +119,8 @@ export function Sidebar({ onClose }: SidebarProps) {
         className={cn(
           "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
           isActive
-            ? "bg-green-600 text-white"
-            : "text-gray-300 hover:bg-gray-800 hover:text-white"
+            ? "bg-[#FFFC41] text-[#1A1A1A] font-semibold"
+            : "text-gray-400 hover:bg-[#2A2A2A] hover:text-white"
         )}
       >
         <Icon className="h-5 w-5 shrink-0" />
@@ -113,19 +135,28 @@ export function Sidebar({ onClose }: SidebarProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-gray-900 text-white">
+    <div className="flex h-full flex-col bg-[#1A1A1A] text-white">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 px-4 lg:px-6 border-b border-gray-700">
-        <Shield className="h-8 w-8 text-green-400 shrink-0" />
+      <div className="flex h-16 items-center gap-2 px-4 lg:px-6 border-b border-[#2A2A2A]">
+        <Shield className="h-8 w-8 text-[#FFFC41] shrink-0" />
         <div className="flex-1 min-w-0">
-          <span className="text-lg font-bold text-white">SHEQsnap</span>
-          <p className="text-xs text-gray-400">Safety Management</p>
+          <div className="flex flex-col">
+            <span className="text-lg font-extrabold leading-tight tracking-tight">
+              <span style={{ color: '#FFFC41' }}>SHEQ</span>
+              <span className="text-white">Snap</span>
+            </span>
+            <span className="text-[10px] leading-tight font-medium" style={{ color: '#9CA3AF' }}>
+              <span style={{ color: '#FFFC41' }}>Spot it.</span>{' '}
+              <span className="text-white">Snap it.</span>{' '}
+              <span style={{ color: '#4CAF50' }}>Stop it.</span>
+            </span>
+          </div>
         </div>
         {/* Close button — mobile only */}
         {onClose && (
           <button
             onClick={onClose}
-            className="lg:hidden ml-2 p-1 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            className="lg:hidden ml-2 p-1 rounded-md text-gray-400 hover:text-white hover:bg-[#2A2A2A] transition-colors"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
@@ -138,7 +169,11 @@ export function Sidebar({ onClose }: SidebarProps) {
         {navItems
           .filter((item) => !(isContractor && item.href === "/checklists"))
           .map((item) => (
-            <NavLink key={item.href} {...item} />
+            <NavLink
+              key={item.href}
+              {...item}
+              badge={item.href === "/licenses" && licenseAlerts > 0 ? licenseAlerts : undefined}
+            />
           ))}
 
         {/* Approvals — only for non-contractors with approver role */}
@@ -161,7 +196,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         {isAdmin && (
           <>
             <div className="mt-4 mb-2 px-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-600">
                 Administration
               </p>
             </div>
@@ -178,7 +213,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-700 p-4">
+      <div className="border-t border-[#2A2A2A] p-4">
         <p className="text-xs text-gray-500 text-center">SHEQsnap v1.0.0</p>
       </div>
     </div>
