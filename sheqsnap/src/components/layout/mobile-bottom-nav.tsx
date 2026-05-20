@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, AlertTriangle, FileWarning, CheckSquare, ClipboardList } from "lucide-react";
+import { LayoutDashboard, AlertTriangle, FileWarning, CheckSquare, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const bottomNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/near-misses", label: "Near Misses", icon: AlertTriangle },
-  { href: "/incidents", label: "Incidents", icon: FileWarning },
   { href: "/actions", label: "Actions", icon: CheckSquare },
-  { href: "/checklists", label: "Checklists", icon: ClipboardList },
+  { href: "/observations", label: "Observe", icon: Eye },
+  { href: "/near-misses", label: "Near Miss", icon: AlertTriangle },
+  { href: "/incidents", label: "Incidents", icon: FileWarning },
 ];
 
 export function MobileBottomNav() {

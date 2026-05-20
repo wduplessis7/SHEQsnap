@@ -23,33 +23,24 @@ import {
   Rocket,
   GraduationCap,
   GitPullRequest,
+  Stethoscope,
+  Leaf,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/near-misses", label: "Near Misses", icon: AlertTriangle },
-  { href: "/incidents", label: "Incidents", icon: FileWarning },
-  { href: "/actions", label: "Actions", icon: CheckSquare },
-  { href: "/logs", label: "Log Register", icon: BookOpen },
-  { href: "/checklists", label: "Checklists", icon: ClipboardList },
-  { href: "/licenses", label: "Licenses", icon: FileCheck },
-  { href: "/observations", label: "Behaviour Obs.", icon: Eye },
-  { href: "/inductions", label: "Inductions", icon: GraduationCap },
-  { href: "/moc", label: "MOC", icon: GitPullRequest },
-];
+interface NavItemDef {
+  href: string;
+  label: string;
+  icon: React.ComponentType<any>;
+  exact?: boolean;
+  comingSoon?: boolean;
+}
 
-const approverNavItems = [
-  { href: "/reports", label: "Reports", icon: BarChart3 },
-];
-
-const adminItems = [
-  { href: "/admin", label: "Admin", icon: Settings, exact: true },
-  { href: "/admin/companies", label: "Companies", icon: Building2 },
-  { href: "/admin/contractors", label: "Contractors", icon: HardHat },
-  { href: "/admin/checklists", label: "Checklist Mgmt", icon: ClipboardCheck },
-];
+interface NavGroup {
+  heading: string;
+  items: NavItemDef[];
+}
 
 interface SidebarProps {
   onClose?: () => void;
@@ -97,9 +88,51 @@ export function Sidebar({ onClose }: SidebarProps) {
       }
     };
     fetchLicenseAlerts();
-    const interval = setInterval(fetchLicenseAlerts, 300000); // every 5 min
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchLicenseAlerts, 300000);
   }, []);
+
+  const navGroups: NavGroup[] = [
+    {
+      heading: "Safety",
+      items: [
+        { href: "/actions", label: "Actions", icon: CheckSquare },
+        { href: "/observations", label: "Observations", icon: Eye },
+        { href: "/near-misses", label: "Near Misses", icon: AlertTriangle },
+        { href: "/incidents", label: "Incidents", icon: FileWarning },
+        { href: "/logs", label: "Log Register", icon: BookOpen },
+      ],
+    },
+    {
+      heading: "Health & Environment",
+      items: [
+        { href: "#", label: "Medicals", icon: Stethoscope, comingSoon: true },
+        { href: "#", label: "Environmental", icon: Leaf, comingSoon: true },
+      ],
+    },
+    {
+      heading: "Quality",
+      items: [
+        { href: "/inductions", label: "Inductions", icon: GraduationCap },
+        { href: "/licenses", label: "Licenses", icon: FileCheck },
+        ...(!isContractor ? [{ href: "/checklists", label: "Checklists", icon: ClipboardList }] : []),
+      ],
+    },
+    {
+      heading: "Management",
+      items: [
+        ...(isApprover ? [{ href: "/approvals", label: "Approvals", icon: ClipboardCheck }] : []),
+        ...(!isContractor ? [{ href: "/reports", label: "Reports", icon: BarChart3 }] : []),
+        { href: "/moc", label: "MOC", icon: GitPullRequest },
+      ],
+    },
+  ];
+
+  const adminItems: NavItemDef[] = [
+    { href: "/admin", label: "Admin", icon: Settings, exact: true },
+    { href: "/admin/companies", label: "Companies", icon: Building2 },
+    { href: "/admin/contractors", label: "Contractors", icon: HardHat },
+    { href: "/admin/checklists", label: "Checklist Mgmt", icon: ClipboardCheck },
+  ];
 
   function NavLink({
     href,
@@ -107,16 +140,29 @@ export function Sidebar({ onClose }: SidebarProps) {
     icon: Icon,
     badge,
     exact,
+    comingSoon,
   }: {
     href: string;
     label: string;
     icon: React.ComponentType<any>;
     badge?: number;
     exact?: boolean;
+    comingSoon?: boolean;
   }) {
-    const isActive = exact
+    const isActive = !comingSoon && (exact
       ? pathname === href
-      : pathname === href || pathname.startsWith(href + "/");
+      : pathname === href || pathname.startsWith(href + "/"));
+
+    if (comingSoon) {
+      return (
+        <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 cursor-default select-none">
+          <Icon className="h-5 w-5 shrink-0" />
+          <span className="flex-1">{label}</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-700 bg-[#2A2A2A] rounded px-1.5 py-0.5">Soon</span>
+        </div>
+      );
+    }
+
     return (
       <Link
         href={href}
@@ -139,6 +185,16 @@ export function Sidebar({ onClose }: SidebarProps) {
     );
   }
 
+  function SectionHeading({ label }: { label: string }) {
+    return (
+      <div className="mt-5 mb-1.5 px-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+          {label}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col bg-[#1A1A1A] text-white">
       {/* Logo */}
@@ -157,7 +213,6 @@ export function Sidebar({ onClose }: SidebarProps) {
             </span>
           </div>
         </div>
-        {/* Close button — mobile only */}
         {onClose && (
           <button
             onClick={onClose}
@@ -170,50 +225,48 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
-        {navItems
-          .filter((item) => !(isContractor && item.href === "/checklists"))
-          .map((item) => (
-            <NavLink
-              key={item.href}
-              {...item}
-              badge={item.href === "/licenses" && licenseAlerts > 0 ? licenseAlerts : undefined}
-            />
-          ))}
+      <nav className="flex-1 px-3 py-3 overflow-y-auto">
+        {/* Dashboard — ungrouped */}
+        <NavLink href="/dashboard" label="Dashboard" icon={LayoutDashboard} />
 
-        {/* Approvals — only for non-contractors with approver role */}
-        {isApprover && (
-          <NavLink
-            href="/approvals"
-            label="Approvals"
-            icon={ClipboardCheck}
-            badge={pendingApprovals}
-          />
-        )}
-
-        {/* Reports — hide for contractors */}
-        {!isContractor &&
-          approverNavItems.map((item) => (
-            <NavLink key={item.href} {...item} />
-          ))}
+        {/* Grouped sections */}
+        {navGroups.map((group) => {
+          if (group.items.length === 0) return null;
+          return (
+            <div key={group.heading}>
+              <SectionHeading label={group.heading} />
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.href + item.label}
+                    {...item}
+                    badge={
+                      item.href === "/licenses" && licenseAlerts > 0 ? licenseAlerts :
+                      item.href === "/approvals" && pendingApprovals > 0 ? pendingApprovals :
+                      undefined
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
 
         {/* Admin section */}
         {isAdmin && (
-          <>
-            <div className="mt-4 mb-2 px-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-600">
-                Administration
-              </p>
+          <div>
+            <SectionHeading label="Administration" />
+            <div className="space-y-0.5">
+              {adminItems.map((item) => (
+                <NavLink key={item.href} {...item} />
+              ))}
             </div>
-            {adminItems.map((item) => (
-              <NavLink key={item.href} {...item} />
-            ))}
-          </>
+          </div>
         )}
       </nav>
 
-      {/* Getting Started + Help — always visible */}
-      <div className="px-3 pb-3 space-y-1">
+      {/* Getting Started + Help */}
+      <div className="px-3 pb-3 space-y-0.5">
         <NavLink href="/help#onboarding" label="Getting Started" icon={Rocket} />
         <NavLink href="/help" label="Help Centre" icon={HelpCircle} />
       </div>
