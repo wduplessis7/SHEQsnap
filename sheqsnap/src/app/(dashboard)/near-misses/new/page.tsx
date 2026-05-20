@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RISK_CATEGORIES } from "@/lib/utils";
+import { RISK_CATEGORIES, RISK_CATEGORY_GROUPS } from "@/lib/utils";
 
 export default function NewNearMissPage() {
   const router = useRouter();
@@ -32,6 +32,8 @@ export default function NewNearMissPage() {
     immediateAction: "",
     assignedUserId: "",
     targetCloseDate: "",
+    contractorsInvolved: false,
+    contractorDetails: "",
   });
 
   useEffect(() => {
@@ -61,6 +63,8 @@ export default function NewNearMissPage() {
           departmentId: form.departmentId || null,
           assignedUserId: form.assignedUserId || null,
           targetCloseDate: form.targetCloseDate || null,
+          contractorsInvolved: form.contractorsInvolved,
+          contractorDetails: form.contractorDetails || null,
         }),
       });
       if (res.ok) {
@@ -144,8 +148,13 @@ export default function NewNearMissPage() {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {RISK_CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  {RISK_CATEGORY_GROUPS.map((group) => (
+                    <div key={group.group}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">{group.group}</div>
+                      {group.items.map((item) => (
+                        <SelectItem key={item} value={item} className="pl-4">{item}</SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>
@@ -184,6 +193,36 @@ export default function NewNearMissPage() {
                 className="mt-1"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Contractor Involvement</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="contractorsInvolved"
+                checked={form.contractorsInvolved}
+                onChange={(e) => setForm((prev) => ({ ...prev, contractorsInvolved: e.target.checked }))}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600"
+              />
+              <Label htmlFor="contractorsInvolved">Contractors were involved in this near miss</Label>
+            </div>
+            {form.contractorsInvolved && (
+              <div>
+                <Label>Contractor Details</Label>
+                <Textarea
+                  value={form.contractorDetails}
+                  onChange={(e) => setField("contractorDetails", e.target.value)}
+                  placeholder="Company name, contractor names, nature of work..."
+                  rows={3}
+                  className="mt-1"
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

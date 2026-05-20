@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, RefreshCw, Eye, AlertTriangle, CheckSquare, Clock } from "lucide-react";
+import { Plus, RefreshCw, Eye, AlertTriangle, CheckSquare, Clock, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,7 +126,12 @@ export default function ObservationsClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Behaviour Observations</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Behaviour Observations</h1>
+            <Link href="/help/behaviour-observations" className="text-gray-400 hover:text-blue-600 transition-colors" title="Help: Behaviour Observations">
+              <HelpCircle className="h-5 w-5" />
+            </Link>
+          </div>
           <p className="text-gray-500 mt-1">Behaviour-Based Safety (BBS) observation register</p>
         </div>
         <div className="flex gap-2">

@@ -150,6 +150,9 @@ export function OnboardingModal({ open, onClose }: OnboardingModalProps = {}) {
           <p className="mt-3 text-sm text-green-50 leading-relaxed">
             {onboarding.welcomeMessage}
           </p>
+          <p className="mt-2 text-xs text-green-200">
+            You can return to this checklist at any time from the sidebar — look for &ldquo;Getting Started&rdquo; in the navigation.
+          </p>
           {/* Progress bar */}
           <div className="mt-4">
             <div className="flex items-center justify-between text-xs text-green-100 mb-1.5">

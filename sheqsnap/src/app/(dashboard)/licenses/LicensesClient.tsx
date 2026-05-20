@@ -10,6 +10,7 @@ import {
   Trash2,
   FileCheck,
   X,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -236,7 +237,12 @@ export default function LicensesClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">License Manager</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">License Manager</h1>
+            <Link href="/help/license-manager" className="text-gray-400 hover:text-blue-600 transition-colors" title="Help: License Manager">
+              <HelpCircle className="h-5 w-5" />
+            </Link>
+          </div>
           <p className="text-gray-500 mt-1">Track employee and contractor licenses</p>
         </div>
         <Button onClick={openAddDialog}>

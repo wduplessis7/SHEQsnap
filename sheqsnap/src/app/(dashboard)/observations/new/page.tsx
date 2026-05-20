@@ -427,7 +427,7 @@ export default function NewObservationPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Safety Category</Label>
+                  <Label>Risk category</Label>
                   <Select onValueChange={(v) => setValue("safetyCategory", v as FormValues["safetyCategory"])}>
                     <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>

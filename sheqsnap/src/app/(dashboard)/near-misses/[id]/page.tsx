@@ -29,7 +29,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { CommentsSection } from "@/components/ui/comments-section";
 import { AuditLogSection } from "@/components/ui/audit-log-section";
 import { AttachmentsSection } from "@/components/ui/attachments-section";
-import { formatDate, formatDateTime, RISK_CATEGORIES, isOverdue } from "@/lib/utils";
+import { formatDate, formatDateTime, RISK_CATEGORIES, RISK_CATEGORY_GROUPS, isOverdue } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 
 const STATUSES = ["NEW", "SUBMITTED", "UNDER_REVIEW", "ACTION_REQUIRED", "IN_PROGRESS", "CLOSED", "CANCELLED"];
@@ -67,6 +67,8 @@ export default function NearMissDetailPage() {
         status: data.status || "NEW",
         assignedUserId: data.assignedUserId || "",
         targetCloseDate: data.targetCloseDate?.split("T")[0] || "",
+        contractorsInvolved: data.contractorsInvolved || false,
+        contractorDetails: data.contractorDetails || "",
       });
       setDepartments(depts);
       setUsers(userList.filter((u: any) => u.active));
@@ -89,6 +91,8 @@ export default function NearMissDetailPage() {
           departmentId: form.departmentId || null,
           assignedUserId: form.assignedUserId || null,
           targetCloseDate: form.targetCloseDate || null,
+          contractorsInvolved: form.contractorsInvolved,
+          contractorDetails: form.contractorDetails || null,
         }),
       });
       if (res.ok) {
@@ -254,7 +258,14 @@ export default function NearMissDetailPage() {
                     <Select value={form.riskCategory} onValueChange={(v) => setField("riskCategory", v)}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {RISK_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {RISK_CATEGORY_GROUPS.map((group) => (
+                          <div key={group.group}>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">{group.group}</div>
+                            {group.items.map((item) => (
+                              <SelectItem key={item} value={item} className="pl-4">{item}</SelectItem>
+                            ))}
+                          </div>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -275,6 +286,30 @@ export default function NearMissDetailPage() {
                     <Label>Immediate Action</Label>
                     <Textarea value={form.immediateAction} onChange={(e) => setField("immediateAction", e.target.value)} rows={3} className="mt-1" />
                   </div>
+                  <div className="md:col-span-2">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="contractorsInvolved"
+                        checked={form.contractorsInvolved}
+                        onChange={(e) => setForm((prev: any) => ({ ...prev, contractorsInvolved: e.target.checked }))}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                      />
+                      <Label htmlFor="contractorsInvolved">Contractors were involved in this near miss</Label>
+                    </div>
+                  </div>
+                  {form.contractorsInvolved && (
+                    <div className="md:col-span-2">
+                      <Label>Contractor Details</Label>
+                      <Textarea
+                        value={form.contractorDetails}
+                        onChange={(e) => setField("contractorDetails", e.target.value)}
+                        placeholder="Company name, contractor names, nature of work..."
+                        rows={3}
+                        className="mt-1"
+                      />
+                    </div>
+                  )}
                   <div>
                     <Label>Assign To</Label>
                     <Select value={form.assignedUserId || "none"} onValueChange={(v) => setField("assignedUserId", v === "none" ? "" : v)}>
@@ -314,6 +349,16 @@ export default function NearMissDetailPage() {
                     <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Risk Category</dt>
                     <dd className="mt-1 text-sm text-gray-900">{item.riskCategory}</dd>
                   </div>
+                  <div>
+                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contractors Involved</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{item.contractorsInvolved ? "Yes" : "No"}</dd>
+                  </div>
+                  {item.contractorDetails && (
+                    <div className="sm:col-span-2">
+                      <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contractor Details</dt>
+                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{item.contractorDetails}</dd>
+                    </div>
+                  )}
                   <div className="sm:col-span-2">
                     <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Description</dt>
                     <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{item.description}</dd>

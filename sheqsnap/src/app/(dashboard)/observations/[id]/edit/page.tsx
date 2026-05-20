@@ -500,7 +500,7 @@ export default function EditObservationPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Safety Category</Label>
+                  <Label>Risk category</Label>
                   <Select
                     value={watch("safetyCategory") || ""}
                     onValueChange={(v) => setValue("safetyCategory", v as FormValues["safetyCategory"])}

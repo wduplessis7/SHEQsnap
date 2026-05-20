@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sheqsnap-v1';
+const CACHE_NAME = 'sheqsnap-v2';
 const STATIC_ASSETS = ['/', '/dashboard', '/login', '/manifest.json'];
 
 self.addEventListener('install', (event) => {

@@ -62,34 +62,44 @@ export const STATUS_COLORS: Record<string, string> = {
   OVERDUE: "bg-red-100 text-red-800",
 };
 
-export const RISK_CATEGORIES = [
-  "Electrical",
-  "Mechanical",
-  "Chemical",
-  "Ergonomic",
-  "Fire",
-  "Height",
-  "Housekeeping",
-  "Manual Handling",
-  "PPE",
-  "Process Safety",
-  "Slip/Trip/Fall",
-  "Struck By/Against",
-  "Vehicle/Traffic",
-  "Other",
+export const RISK_CATEGORY_GROUPS: { group: string; items: string[] }[] = [
+  {
+    group: "HR",
+    items: ["Bullying / Harassment", "Fatigue", "Labour Relations", "Staffing / Competency", "Welfare"],
+  },
+  {
+    group: "Safety",
+    items: ["Confined Space", "Electrical", "Explosives / Blasting", "Fall from Height", "Fire / Explosion", "Housekeeping", "Lifting / Rigging", "Machinery / Equipment", "Manual Handling", "PPE", "Slip / Trip / Fall", "Struck By / Against", "Vehicle / Traffic"],
+  },
+  {
+    group: "Health",
+    items: ["Chemical Exposure", "Dust / Airborne Contaminants", "Ergonomics", "Noise / Vibration", "Occupational Disease", "Radiation", "Temperature Extremes"],
+  },
+  {
+    group: "Environment",
+    items: ["Air Pollution / Emissions", "Land Contamination", "Spill / Leak", "Waste Management", "Water Pollution", "Wildlife / Ecological Impact"],
+  },
+  {
+    group: "Quality",
+    items: ["Customer Complaint", "Document / Record Error", "Non-Conformance", "Process Deviation", "Product Defect"],
+  },
+  {
+    group: "Asset / Maintenance",
+    items: ["Corrosion / Deterioration", "Equipment Failure", "Infrastructure Damage", "Planned Maintenance Overdue", "Statutory Inspection Due"],
+  },
 ];
 
-export const INCIDENT_TYPES = [
-  "Near Miss",
-  "First Aid",
-  "Medical Treatment",
-  "Lost Time Injury",
-  "Fatality",
-  "Property Damage",
-  "Environmental",
-  "Security",
-  "Other",
-];
+export const RISK_CATEGORIES = RISK_CATEGORY_GROUPS.flatMap((g) => g.items);
+
+export const INCIDENT_TYPES = ["Safety", "Health", "Environment", "Quality", "Multiple"];
+
+export const IMPACT_TYPES_BY_INCIDENT: Record<string, string[]> = {
+  Safety: ["Near Miss", "First Aid Case", "Medical Treatment Case", "Lost Time Injury", "Permanent Disability", "Fatality", "Property Damage", "None"],
+  Health: ["Occupational Illness", "Disease / Infection", "Chemical Exposure", "Noise-Induced Hearing Loss", "Mental Health / Stress", "Ergonomic Injury", "None"],
+  Environment: ["Spill / Leak", "Air Emission", "Water Pollution", "Land Contamination", "Waste Non-Compliance", "Wildlife / Ecological Impact", "None"],
+  Quality: ["Product Defect", "Process Non-Conformance", "Customer Complaint", "Document Error", "None"],
+  Multiple: ["See description", "None"],
+};
 
 export const INJURY_TYPES = [
   "None",

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { INCIDENT_TYPES, INJURY_TYPES } from "@/lib/utils";
+import { INCIDENT_TYPES, IMPACT_TYPES_BY_INCIDENT, RISK_CATEGORY_GROUPS } from "@/lib/utils";
 
 export default function NewIncidentPage() {
   const router = useRouter();
@@ -31,6 +31,7 @@ export default function NewIncidentPage() {
     description: "",
     personsInvolved: "",
     injuryType: "None",
+    riskCategory: "",
     severityLevel: "LOW",
     rootCause: "",
     immediateAction: "",
@@ -66,6 +67,7 @@ export default function NewIncidentPage() {
           departmentId: form.departmentId || null,
           assignedUserId: form.assignedUserId || null,
           dueDate: form.dueDate || null,
+          riskCategory: form.riskCategory || null,
         }),
       });
       if (res.ok) {
@@ -92,6 +94,29 @@ export default function NewIncidentPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
+          <CardHeader><CardTitle className="text-base">Incident Type *</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {INCIDENT_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => { setField("incidentType", type); setField("injuryType", "None"); }}
+                  className={`p-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                    form.incidentType === type
+                      ? "border-blue-600 bg-blue-50 text-blue-700"
+                      : "border-gray-200 hover:border-gray-300 text-gray-700"
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+            {!form.incidentType && <p className="text-xs text-red-500 mt-2">Please select an incident type to continue</p>}
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader><CardTitle className="text-base">Basic Information</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -113,15 +138,6 @@ export default function NewIncidentPage() {
               </Select>
             </div>
             <div>
-              <Label>Incident Type *</Label>
-              <Select value={form.incidentType} onValueChange={(v) => setField("incidentType", v)}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>
-                  {INCIDENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="md:col-span-2">
               <Label>Location *</Label>
               <Input value={form.location} onChange={(e) => setField("location", e.target.value)} placeholder="Specific location of incident" required className="mt-1" />
             </div>
@@ -141,11 +157,29 @@ export default function NewIncidentPage() {
               </Select>
             </div>
             <div>
-              <Label>Injury Type</Label>
+              <Label>Impact Type</Label>
               <Select value={form.injuryType} onValueChange={(v) => setField("injuryType", v)}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {INJURY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {(IMPACT_TYPES_BY_INCIDENT[form.incidentType] || ["None"]).map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-2">
+              <Label>Risk Category</Label>
+              <Select value={form.riskCategory} onValueChange={(v) => setField("riskCategory", v)}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  {RISK_CATEGORY_GROUPS.map((group) => (
+                    <div key={group.group}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">{group.group}</div>
+                      {group.items.map((item) => (
+                        <SelectItem key={item} value={item} className="pl-4">{item}</SelectItem>
+                      ))}
+                    </div>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -210,6 +210,8 @@ model NearMiss {
   assignedGroupId String?
   targetCloseDate DateTime?
   actualCloseDate DateTime?
+  contractorsInvolved Boolean        @default(false)
+  contractorDetails   String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
@@ -234,6 +236,7 @@ model Incident {
   description        String
   personsInvolved    String?
   injuryType         String?
+  riskCategory       String?
   severityLevel      SeverityLevel  @default(LOW)
   rootCause          String?
   immediateAction    String?
@@ -593,4 +596,52 @@ model ObservationEvidence {
   uploadedAt    DateTime @default(now())
 
   observation   BehaviourObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+}
+
+// ─── Inductions / Training ───────────────────────────────────────────────────
+
+model Induction {
+  id              String    @id @default(cuid())
+  referenceNo     String    @unique
+  inducteeName    String
+  inducteeType    String    // "employee" | "contractor"
+  inducteeId      String?
+  inductionType   String    // "Site Safety" | "Fire & Emergency" | "PPE" | "Chemical Handling" | "Equipment" | "Environmental" | "Legal Appointment" | "Other"
+  conductedById   String?
+  conductedByName String
+  conductedDate   DateTime
+  expiryDate      DateTime?
+  validityMonths  Int?
+  status          String    @default("current") // "current" | "expiring_soon" | "expired"
+  departmentId    String?
+  notes           String?
+  createdById     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ─── Management of Change (MOC) ──────────────────────────────────────────────
+
+model ChangeRequest {
+  id                 String    @id @default(cuid())
+  referenceNo        String    @unique
+  title              String
+  changeType         String    // "Process" | "Equipment / Plant" | "Document / Procedure" | "Personnel" | "Temporary Change" | "Other"
+  description        String
+  reason             String
+  riskAssessment     String?
+  affectedAreas      String?
+  proposedDate       DateTime?
+  implementationDate DateTime?
+  reviewDate         DateTime?
+  status             String    @default("draft") // "draft" | "pending_approval" | "approved" | "rejected" | "implemented" | "closed"
+  requestedById      String?
+  requestedByName    String
+  approvedById       String?
+  approvedByName     String?
+  approvedAt         DateTime?
+  rejectionReason    String?
+  closureNotes       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }

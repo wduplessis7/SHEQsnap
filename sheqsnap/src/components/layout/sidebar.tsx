@@ -20,6 +20,9 @@ import {
   X,
   FileCheck,
   Eye,
+  Rocket,
+  GraduationCap,
+  GitPullRequest,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -33,6 +36,8 @@ const navItems = [
   { href: "/checklists", label: "Checklists", icon: ClipboardList },
   { href: "/licenses", label: "Licenses", icon: FileCheck },
   { href: "/observations", label: "Behaviour Obs.", icon: Eye },
+  { href: "/inductions", label: "Inductions", icon: GraduationCap },
+  { href: "/moc", label: "MOC", icon: GitPullRequest },
 ];
 
 const approverNavItems = [
@@ -207,8 +212,9 @@ export function Sidebar({ onClose }: SidebarProps) {
         )}
       </nav>
 
-      {/* Help — always visible */}
-      <div className="px-3 pb-3">
+      {/* Getting Started + Help — always visible */}
+      <div className="px-3 pb-3 space-y-1">
+        <NavLink href="/help#onboarding" label="Getting Started" icon={Rocket} />
         <NavLink href="/help" label="Help Centre" icon={HelpCircle} />
       </div>
 

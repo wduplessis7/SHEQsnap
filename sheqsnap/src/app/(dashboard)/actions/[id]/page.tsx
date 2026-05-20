@@ -38,6 +38,7 @@ export default function ActionDetailPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [completingNote, setCompletingNote] = useState("");
   const [showComplete, setShowComplete] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -110,6 +111,10 @@ export default function ActionDetailPage() {
   async function handleStatusChange(newStatus: string) {
     if (newStatus === "COMPLETED") {
       setShowComplete(true);
+      return;
+    }
+    if (newStatus === "CANCELLED") {
+      setShowCancelConfirm(true);
       return;
     }
     setSaving(true);
@@ -186,14 +191,50 @@ export default function ActionDetailPage() {
       {showComplete && (
         <Card className="border-green-200 bg-green-50">
           <CardContent className="p-4 space-y-3">
-            <h3 className="text-sm font-medium text-green-700">Complete Action</h3>
+            <h3 className="text-sm font-medium text-green-700">Mark this action as complete? This cannot be undone.</h3>
             <Textarea value={completingNote} onChange={(e) => setCompletingNote(e.target.value)} placeholder="Describe how this action was completed (optional)..." rows={3} />
             <div className="flex gap-2">
               <Button size="sm" variant="success" onClick={handleComplete} disabled={saving}>
                 {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
-                Mark Complete
+                Yes, Mark Complete
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowComplete(false)}>Cancel</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowComplete(false)}>No, Go Back</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Cancel confirm dialog */}
+      {showCancelConfirm && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-4 space-y-3">
+            <h3 className="text-sm font-medium text-orange-700">Cancel this action? It will be marked as cancelled.</h3>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={async () => {
+                  setShowCancelConfirm(false);
+                  setSaving(true);
+                  try {
+                    const res = await fetch(`/api/actions/${id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ ...item, status: "CANCELLED" }),
+                    });
+                    if (res.ok) {
+                      setItem((prev: any) => ({ ...prev, status: "CANCELLED" }));
+                    }
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                Yes, Cancel Action
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowCancelConfirm(false)}>No, Go Back</Button>
             </div>
           </CardContent>
         </Card>

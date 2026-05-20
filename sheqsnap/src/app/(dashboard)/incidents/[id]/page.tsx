@@ -19,7 +19,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { CommentsSection } from "@/components/ui/comments-section";
 import { AuditLogSection } from "@/components/ui/audit-log-section";
 import { AttachmentsSection } from "@/components/ui/attachments-section";
-import { formatDate, formatDateTime, INCIDENT_TYPES, INJURY_TYPES, isOverdue } from "@/lib/utils";
+import { formatDate, formatDateTime, INCIDENT_TYPES, IMPACT_TYPES_BY_INCIDENT, RISK_CATEGORY_GROUPS, isOverdue } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 
 const STATUSES = ["NEW", "SUBMITTED", "UNDER_REVIEW", "ACTION_REQUIRED", "IN_PROGRESS", "CLOSED", "CANCELLED"];
@@ -54,6 +54,7 @@ export default function IncidentDetailPage() {
         description: data.description || "",
         personsInvolved: data.personsInvolved || "",
         injuryType: data.injuryType || "None",
+        riskCategory: data.riskCategory || "",
         severityLevel: data.severityLevel || "LOW",
         rootCause: data.rootCause || "",
         immediateAction: data.immediateAction || "",
@@ -78,7 +79,7 @@ export default function IncidentDetailPage() {
       const res = await fetch(`/api/incidents/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, departmentId: form.departmentId || null, assignedUserId: form.assignedUserId || null, dueDate: form.dueDate || null }),
+        body: JSON.stringify({ ...form, departmentId: form.departmentId || null, assignedUserId: form.assignedUserId || null, dueDate: form.dueDate || null, riskCategory: form.riskCategory || null }),
       });
       if (res.ok) {
         const updated = await res.json();
@@ -191,10 +192,25 @@ export default function IncidentDetailPage() {
                       <SelectContent>{["LOW","MEDIUM","HIGH","CRITICAL"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div><Label>Injury Type</Label>
+                  <div><Label>Impact Type</Label>
                     <Select value={form.injuryType} onValueChange={(v) => setField("injuryType", v)}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                      <SelectContent>{INJURY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                      <SelectContent>{(IMPACT_TYPES_BY_INCIDENT[form.incidentType] || IMPACT_TYPES_BY_INCIDENT["Safety"] || ["None"]).map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2"><Label>Risk Category</Label>
+                    <Select value={form.riskCategory} onValueChange={(v) => setField("riskCategory", v)}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select category" /></SelectTrigger>
+                      <SelectContent>
+                        {RISK_CATEGORY_GROUPS.map((group) => (
+                          <div key={group.group}>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">{group.group}</div>
+                            {group.items.map((item) => (
+                              <SelectItem key={item} value={item} className="pl-4">{item}</SelectItem>
+                            ))}
+                          </div>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </div>
                   <div className="md:col-span-2"><Label>Description</Label><Textarea value={form.description} onChange={(e) => setField("description", e.target.value)} rows={4} className="mt-1" /></div>
@@ -216,7 +232,8 @@ export default function IncidentDetailPage() {
                   <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Incident Type</dt><dd className="mt-1 text-sm text-gray-900">{item.incidentType}</dd></div>
                   <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Department</dt><dd className="mt-1 text-sm text-gray-900">{item.department?.name || "—"}</dd></div>
                   <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Location</dt><dd className="mt-1 text-sm text-gray-900">{item.location}</dd></div>
-                  <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Injury Type</dt><dd className="mt-1 text-sm text-gray-900">{item.injuryType || "—"}</dd></div>
+                  <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Impact Type</dt><dd className="mt-1 text-sm text-gray-900">{item.injuryType || "—"}</dd></div>
+                  {item.riskCategory && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Risk Category</dt><dd className="mt-1 text-sm text-gray-900">{item.riskCategory}</dd></div>}
                   {item.personsInvolved && <div className="sm:col-span-2"><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Persons Involved</dt><dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{item.personsInvolved}</dd></div>}
                   <div className="sm:col-span-2"><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Description</dt><dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{item.description}</dd></div>
                   {item.immediateAction && <div className="sm:col-span-2"><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Immediate Action</dt><dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{item.immediateAction}</dd></div>}
