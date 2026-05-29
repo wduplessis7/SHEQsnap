@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
+import { getLicenseModules } from "@/lib/license";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -13,10 +14,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Admin only" }, { status: 403 });
   }
 
-  const license = await prisma.platformLicense.findFirst({
-    where: { active: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [license, licenseServerData] = await Promise.all([
+    prisma.platformLicense.findFirst({
+      where: { active: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    getLicenseModules(),
+  ]);
 
   // Count licensed users (isLicensed=true, reportingOnly=false, active=true)
   const licensedUserCount = await prisma.user.count({
@@ -56,6 +60,8 @@ export async function GET(req: NextRequest) {
       totalMonthlyCost,
       daysUntilRenewal,
       renewalAlert,
+      serverMaxUsers: licenseServerData.maxUsers,
+      serverMonthlyTotal: licenseServerData.monthlyTotal,
     },
   });
 }

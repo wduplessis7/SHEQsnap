@@ -76,6 +76,8 @@ type Stats = {
   totalMonthlyCost: number;
   daysUntilRenewal: number | null;
   renewalAlert: boolean;
+  serverMaxUsers: number | null;
+  serverMonthlyTotal: number | null;
 };
 
 type UserRow = {
@@ -302,11 +304,14 @@ export default function PlatformLicensePage() {
               <p className="text-2xl font-bold text-gray-900">
                 {stats.licensedUserCount}
                 <span className="text-sm font-normal text-gray-400 ml-1">
-                  / {license?.maxLicensedUsers ?? "Unlimited"}
+                  / {stats.serverMaxUsers != null ? stats.serverMaxUsers : (license?.maxLicensedUsers ?? "Unlimited")}
                 </span>
               </p>
               {approachingLimit && (
                 <p className="text-xs text-orange-600 mt-1 font-medium">Approaching limit</p>
+              )}
+              {stats.serverMaxUsers != null && (
+                <p className="text-xs text-gray-400 mt-1">Limit set by VanTech License Server</p>
               )}
             </CardContent>
           </Card>
@@ -333,6 +338,12 @@ export default function PlatformLicensePage() {
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Monthly Total</span>
               </div>
               <p className="text-xl font-bold text-gray-900">{formatCurrency(stats.totalMonthlyCost)}</p>
+              {stats.serverMonthlyTotal != null && (
+                <>
+                  <p className="text-sm font-semibold text-blue-700 mt-1">{formatCurrency(stats.serverMonthlyTotal)}</p>
+                  <p className="text-xs text-gray-400">via License Server</p>
+                </>
+              )}
             </CardContent>
           </Card>
 
