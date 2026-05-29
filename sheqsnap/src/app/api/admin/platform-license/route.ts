@@ -28,10 +28,12 @@ export async function GET(req: NextRequest) {
     where: { reportingOnly: true },
   });
 
-  const perUserRate = license?.perUserRate ?? 385;
-  const monthlyHostingFee = license?.monthlyHostingFee ?? 850;
+  const perUserRate = license?.perUserRate ?? 270;
+  const monthlyHostingFee = license?.monthlyHostingFee ?? 650;
   const monthlyUserCost = licensedUserCount * perUserRate;
-  const totalMonthlyCost = monthlyHostingFee + monthlyUserCost;
+  const monthlySupportCost = (license?.monthlySupportHours ?? 0) * (license?.supportHourlyRate ?? 385);
+  const monthlyDevCost = (license?.monthlyDevHours ?? 0) * (license?.devHourlyRate ?? 585);
+  const totalMonthlyCost = monthlyHostingFee + monthlyUserCost + monthlySupportCost + monthlyDevCost;
 
   let daysUntilRenewal: number | null = null;
   let renewalAlert = false;
@@ -49,6 +51,8 @@ export async function GET(req: NextRequest) {
       licensedUserCount,
       reportingOnlyCount,
       monthlyUserCost,
+      monthlySupportCost,
+      monthlyDevCost,
       totalMonthlyCost,
       daysUntilRenewal,
       renewalAlert,
@@ -73,8 +77,12 @@ export async function POST(req: NextRequest) {
       serverTier: body.serverTier ?? "STARTUP",
       setupFee: body.setupFee ?? 0,
       annualLicenseFee: body.annualLicenseFee ?? 0,
-      monthlyHostingFee: body.monthlyHostingFee ?? 850,
-      perUserRate: body.perUserRate ?? 385,
+      monthlyHostingFee: body.monthlyHostingFee ?? 650,
+      perUserRate: body.perUserRate ?? 270,
+      monthlySupportHours: body.monthlySupportHours ?? 0,
+      supportHourlyRate: body.supportHourlyRate ?? 385,
+      monthlyDevHours: body.monthlyDevHours ?? 0,
+      devHourlyRate: body.devHourlyRate ?? 585,
       licenseStart: body.licenseStart ? new Date(body.licenseStart) : new Date(),
       licenseRenewal: new Date(body.licenseRenewal),
       backupEnabled: body.backupEnabled !== false,
@@ -109,6 +117,10 @@ export async function PUT(req: NextRequest) {
       annualLicenseFee: body.annualLicenseFee,
       monthlyHostingFee: body.monthlyHostingFee,
       perUserRate: body.perUserRate,
+      monthlySupportHours: body.monthlySupportHours ?? 0,
+      supportHourlyRate: body.supportHourlyRate ?? 385,
+      monthlyDevHours: body.monthlyDevHours ?? 0,
+      devHourlyRate: body.devHourlyRate ?? 585,
       licenseStart: body.licenseStart ? new Date(body.licenseStart) : undefined,
       licenseRenewal: body.licenseRenewal ? new Date(body.licenseRenewal) : undefined,
       backupEnabled: body.backupEnabled,

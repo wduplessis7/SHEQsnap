@@ -20,7 +20,7 @@ const SERVER_TIER_COLORS: Record<string, string> = {
 };
 
 const SERVER_TIER_FEES: Record<string, number> = {
-  STARTUP: 850,
+  STARTUP: 650,
   GROWTH: 1850,
   BUSINESS: 3500,
   CUSTOM: 0,
@@ -54,6 +54,10 @@ type LicenseData = {
   annualLicenseFee: number;
   monthlyHostingFee: number;
   perUserRate: number;
+  monthlySupportHours: number;
+  supportHourlyRate: number;
+  monthlyDevHours: number;
+  devHourlyRate: number;
   licenseStart: string;
   licenseRenewal: string;
   backupEnabled: boolean;
@@ -67,6 +71,8 @@ type Stats = {
   licensedUserCount: number;
   reportingOnlyCount: number;
   monthlyUserCost: number;
+  monthlySupportCost: number;
+  monthlyDevCost: number;
   totalMonthlyCost: number;
   daysUntilRenewal: number | null;
   renewalAlert: boolean;
@@ -85,10 +91,14 @@ type UserRow = {
 const EMPTY_FORM = {
   clientName: "",
   serverTier: "STARTUP",
-  setupFee: 0,
+  setupFee: 1500,
   annualLicenseFee: 0,
-  monthlyHostingFee: 850,
-  perUserRate: 385,
+  monthlyHostingFee: 650,
+  perUserRate: 270,
+  monthlySupportHours: 0,
+  supportHourlyRate: 385,
+  monthlyDevHours: 0,
+  devHourlyRate: 585,
   licenseStart: new Date().toISOString().split("T")[0],
   licenseRenewal: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
   backupEnabled: true,
@@ -137,6 +147,10 @@ export default function PlatformLicensePage() {
         annualLicenseFee: license.annualLicenseFee,
         monthlyHostingFee: license.monthlyHostingFee,
         perUserRate: license.perUserRate,
+        monthlySupportHours: license.monthlySupportHours ?? 0,
+        supportHourlyRate: license.supportHourlyRate,
+        monthlyDevHours: license.monthlyDevHours ?? 0,
+        devHourlyRate: license.devHourlyRate,
         licenseStart: license.licenseStart.split("T")[0],
         licenseRenewal: license.licenseRenewal.split("T")[0],
         backupEnabled: license.backupEnabled,
@@ -174,6 +188,10 @@ export default function PlatformLicensePage() {
         annualLicenseFee: Number(form.annualLicenseFee),
         monthlyHostingFee: Number(form.monthlyHostingFee),
         perUserRate: Number(form.perUserRate),
+        monthlySupportHours: Number(form.monthlySupportHours),
+        supportHourlyRate: Number(form.supportHourlyRate),
+        monthlyDevHours: Number(form.monthlyDevHours),
+        devHourlyRate: Number(form.devHourlyRate),
         backupRetentionMonths: Number(form.backupRetentionMonths),
         ...(license ? { id: license.id } : {}),
       };
@@ -356,20 +374,42 @@ export default function PlatformLicensePage() {
             <div className="space-y-2">
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="text-sm text-gray-600">
-                  Hosting ({license.serverTier} tier)
+                  VPS Hosting ({license.serverTier} tier)
                 </span>
                 <span className="text-sm font-medium">{formatCurrency(license.monthlyHostingFee)}/month</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="text-sm text-gray-600">
-                  Users ({stats.licensedUserCount} × {formatCurrency(license.perUserRate)})
+                  User Licenses ({stats.licensedUserCount} × {formatCurrency(license.perUserRate)})
                 </span>
                 <span className="text-sm font-medium">{formatCurrency(stats.monthlyUserCost)}/month</span>
               </div>
+              {(license.monthlySupportHours ?? 0) > 0 && (
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-sm text-gray-600">
+                    Support Hours ({license.monthlySupportHours} hrs × {formatCurrency(license.supportHourlyRate)})
+                  </span>
+                  <span className="text-sm font-medium">{formatCurrency(stats.monthlySupportCost)}/month</span>
+                </div>
+              )}
+              {(license.monthlyDevHours ?? 0) > 0 && (
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-sm text-gray-600">
+                    Development Hours ({license.monthlyDevHours} hrs × {formatCurrency(license.devHourlyRate)})
+                  </span>
+                  <span className="text-sm font-medium">{formatCurrency(stats.monthlyDevCost)}/month</span>
+                </div>
+              )}
               <div className="flex justify-between items-center py-2 border-b bg-gray-50 px-2 rounded">
                 <span className="text-sm font-bold text-gray-900">Total Monthly</span>
                 <span className="text-sm font-bold text-gray-900">{formatCurrency(stats.totalMonthlyCost)}/month</span>
               </div>
+              {license.setupFee > 0 && (
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-sm text-gray-600">Once-off Setup Fee</span>
+                  <span className="text-sm font-medium">{formatCurrency(license.setupFee)}</span>
+                </div>
+              )}
               {license.annualLicenseFee > 0 && (
                 <div className="flex justify-between items-center py-2">
                   <span className="text-sm text-gray-600">Annual License Fee</span>
@@ -501,13 +541,33 @@ export default function PlatformLicensePage() {
                   <Input type="number" value={form.monthlyHostingFee} onChange={(e) => setField("monthlyHostingFee", e.target.value)} className="mt-1" />
                 </div>
                 <div>
-                  <Label>Per User Rate (R)</Label>
+                  <Label>Per User Rate (R/month)</Label>
                   <Input type="number" value={form.perUserRate} onChange={(e) => setField("perUserRate", e.target.value)} className="mt-1" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Setup Fee (R)</Label>
+                  <Label>Monthly Support Hours</Label>
+                  <Input type="number" value={form.monthlySupportHours} onChange={(e) => setField("monthlySupportHours", e.target.value)} className="mt-1" placeholder="0" />
+                </div>
+                <div>
+                  <Label>Support Rate (R/hr)</Label>
+                  <Input type="number" value={form.supportHourlyRate} onChange={(e) => setField("supportHourlyRate", e.target.value)} className="mt-1" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Monthly Dev Hours</Label>
+                  <Input type="number" value={form.monthlyDevHours} onChange={(e) => setField("monthlyDevHours", e.target.value)} className="mt-1" placeholder="0" />
+                </div>
+                <div>
+                  <Label>Dev Rate (R/hr)</Label>
+                  <Input type="number" value={form.devHourlyRate} onChange={(e) => setField("devHourlyRate", e.target.value)} className="mt-1" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Setup Fee (R once-off)</Label>
                   <Input type="number" value={form.setupFee} onChange={(e) => setField("setupFee", e.target.value)} className="mt-1" />
                 </div>
                 <div>
