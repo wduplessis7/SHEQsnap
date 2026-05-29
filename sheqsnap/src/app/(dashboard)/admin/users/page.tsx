@@ -39,6 +39,7 @@ export default function AdminUsersPage() {
     role: "REPORTER",
     departmentId: "",
     active: true,
+    mocApprover: false,
   });
 
   const fetchData = async () => {
@@ -59,14 +60,14 @@ export default function AdminUsersPage() {
 
   function openCreate() {
     setEditingUser(null);
-    setForm({ name: "", email: "", password: "", role: "REPORTER", departmentId: "", active: true });
+    setForm({ name: "", email: "", password: "", role: "REPORTER", departmentId: "", active: true, mocApprover: false });
     setError("");
     setDialogOpen(true);
   }
 
   function openEdit(user: any) {
     setEditingUser(user);
-    setForm({ name: user.name, email: user.email, password: "", role: user.role, departmentId: user.departmentId || "", active: user.active });
+    setForm({ name: user.name, email: user.email, password: "", role: user.role, departmentId: user.departmentId || "", active: user.active, mocApprover: user.mocApprover || false });
     setError("");
     setDialogOpen(true);
   }
@@ -131,12 +132,13 @@ export default function AdminUsersPage() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Department</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">MOC Approver</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-gray-400" /></td></tr>
+                <tr><td colSpan={7} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-gray-400" /></td></tr>
               ) : (
                 users.map((user) => (
                   <tr key={user.id} className="border-b last:border-0 hover:bg-gray-50">
@@ -150,6 +152,13 @@ export default function AdminUsersPage() {
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${user.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                         {user.active ? "Active" : "Inactive"}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {user.mocApprover ? (
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">MOC</span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
@@ -197,6 +206,10 @@ export default function AdminUsersPage() {
                 <label htmlFor="active" className="text-sm">Account Active</label>
               </div>
             )}
+            <div className="flex items-center gap-3">
+              <input type="checkbox" id="mocApprover" checked={form.mocApprover} onChange={(e) => setField("mocApprover", e.target.checked)} className="h-4 w-4" />
+              <label htmlFor="mocApprover" className="text-sm">MOC Approver</label>
+            </div>
             {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">{error}</p>}
           </div>
           <DialogFooter>

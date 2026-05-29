@@ -23,8 +23,8 @@ import {
   Rocket,
   GraduationCap,
   GitPullRequest,
-  Stethoscope,
-  Leaf,
+
+  CreditCard,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -35,6 +35,8 @@ interface NavItemDef {
   icon: React.ComponentType<any>;
   exact?: boolean;
   comingSoon?: boolean;
+  /** License module slug. Omit = always visible (base or admin). */
+  module?: string;
 }
 
 interface NavGroup {
@@ -44,9 +46,10 @@ interface NavGroup {
 
 interface SidebarProps {
   onClose?: () => void;
+  initialModules?: string[];
 }
 
-export function Sidebar({ onClose }: SidebarProps) {
+export function Sidebar({ onClose, initialModules }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const userRole = (session?.user as any)?.role;
@@ -56,6 +59,9 @@ export function Sidebar({ onClose }: SidebarProps) {
 
   const [pendingApprovals, setPendingApprovals] = useState(0);
   const [licenseAlerts, setLicenseAlerts] = useState(0);
+  const [activeModules, setActiveModules] = useState<string[]>(
+    initialModules ?? ["actions", "near-misses", "observations", "incidents"]
+  );
 
   useEffect(() => {
     if (!isApprover) return;
@@ -91,6 +97,10 @@ export function Sidebar({ onClose }: SidebarProps) {
     const interval = setInterval(fetchLicenseAlerts, 300000);
   }, []);
 
+
+  const hasModule = (slug: string) =>
+    activeModules.includes("all") || activeModules.includes(slug);
+
   const navGroups: NavGroup[] = [
     {
       heading: "Safety",
@@ -99,30 +109,23 @@ export function Sidebar({ onClose }: SidebarProps) {
         { href: "/observations", label: "Observations", icon: Eye },
         { href: "/near-misses", label: "Near Misses", icon: AlertTriangle },
         { href: "/incidents", label: "Incidents", icon: FileWarning },
+        { href: "/inductions", label: "Inductions", icon: GraduationCap, module: "inductions" },
         { href: "/logs", label: "Log Register", icon: BookOpen },
-      ],
-    },
-    {
-      heading: "Health & Environment",
-      items: [
-        { href: "#", label: "Medicals", icon: Stethoscope, comingSoon: true },
-        { href: "#", label: "Environmental", icon: Leaf, comingSoon: true },
       ],
     },
     {
       heading: "Quality",
       items: [
-        { href: "/inductions", label: "Inductions", icon: GraduationCap },
-        { href: "/licenses", label: "Licenses", icon: FileCheck },
-        ...(!isContractor ? [{ href: "/checklists", label: "Checklists", icon: ClipboardList }] : []),
+        { href: "/licenses", label: "Licenses", icon: FileCheck, module: "licenses" },
+        ...(!isContractor ? [{ href: "/checklists", label: "Checklists", icon: ClipboardList, module: "checklists" }] : []),
       ],
     },
     {
       heading: "Management",
       items: [
         ...(isApprover ? [{ href: "/approvals", label: "Approvals", icon: ClipboardCheck }] : []),
-        ...(!isContractor ? [{ href: "/reports", label: "Reports", icon: BarChart3 }] : []),
-        { href: "/moc", label: "MOC", icon: GitPullRequest },
+        ...(!isContractor ? [{ href: "/reports", label: "Reports", icon: BarChart3, module: "reports" }] : []),
+        { href: "/moc", label: "MOC", icon: GitPullRequest, module: "moc" },
       ],
     },
   ];
@@ -132,6 +135,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     { href: "/admin/companies", label: "Companies", icon: Building2 },
     { href: "/admin/contractors", label: "Contractors", icon: HardHat },
     { href: "/admin/checklists", label: "Checklist Mgmt", icon: ClipboardCheck },
+    { href: "/admin/platform-license", label: "Platform License", icon: CreditCard },
   ];
 
   function NavLink({
@@ -226,17 +230,21 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-3 overflow-y-auto">
-        {/* Dashboard — ungrouped */}
+        {/* Dashboard — always visible */}
         <NavLink href="/dashboard" label="Dashboard" icon={LayoutDashboard} />
 
-        {/* Grouped sections */}
+        {/* Grouped sections — filtered by license */}
         {navGroups.map((group) => {
-          if (group.items.length === 0) return null;
+          const visibleItems = group.items.filter(
+            (item) => !item.module || hasModule(item.module)
+          );
+          if (visibleItems.length === 0) return null;
+          const showHeading = !["Management", "Safety", "Health & Environment"].includes(group.heading);
           return (
             <div key={group.heading}>
-              <SectionHeading label={group.heading} />
+              {showHeading && <SectionHeading label={group.heading} />}
               <div className="space-y-0.5">
-                {group.items.map((item) => (
+                {visibleItems.map((item) => (
                   <NavLink
                     key={item.href + item.label}
                     {...item}
@@ -252,7 +260,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           );
         })}
 
-        {/* Admin section */}
+        {/* Admin section — always visible to admins */}
         {isAdmin && (
           <div>
             <SectionHeading label="Administration" />

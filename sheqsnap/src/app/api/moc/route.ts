@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       status: body.status || "draft",
       requestedByName: body.requestedByName || (session.user as any)?.name || "Unknown",
       requestedById: (session.user as any)?.id || null,
+      approvedById: body.approverId || null,
     },
   });
 

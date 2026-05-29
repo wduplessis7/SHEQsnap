@@ -12,6 +12,16 @@ function createTransporter() {
   })
 }
 
+export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+  const transporter = createTransporter()
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to,
+    subject,
+    html,
+  })
+}
+
 export async function sendChecklistReminder(
   assignment: { id: string; dueDate: Date },
   user: { name: string; email: string },
@@ -66,4 +76,42 @@ export async function sendChecklistReminder(
     subject,
     html,
   })
+}
+
+export async function sendMocNotification({
+  recipientName,
+  recipientEmail,
+  changeRequest,
+}: {
+  recipientName: string;
+  recipientEmail: string;
+  changeRequest: {
+    referenceNo: string;
+    title: string;
+    changeType: string;
+    requestedByName: string;
+    description: string;
+  };
+}) {
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: recipientEmail,
+    subject: `MOC Notification: ${changeRequest.referenceNo} – ${changeRequest.title}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1a1a1a;">Management of Change Notification</h2>
+        <p>Dear ${recipientName},</p>
+        <p>You are being notified of the following Management of Change request:</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <tr><td style="padding: 8px; font-weight: bold; color: #555; width: 40%;">Reference</td><td style="padding: 8px;">${changeRequest.referenceNo}</td></tr>
+          <tr style="background: #f9f9f9;"><td style="padding: 8px; font-weight: bold; color: #555;">Title</td><td style="padding: 8px;">${changeRequest.title}</td></tr>
+          <tr><td style="padding: 8px; font-weight: bold; color: #555;">Change Type</td><td style="padding: 8px;">${changeRequest.changeType}</td></tr>
+          <tr style="background: #f9f9f9;"><td style="padding: 8px; font-weight: bold; color: #555;">Requested By</td><td style="padding: 8px;">${changeRequest.requestedByName}</td></tr>
+          <tr><td style="padding: 8px; font-weight: bold; color: #555; vertical-align: top;">Description</td><td style="padding: 8px;">${changeRequest.description.replace(/\n/g, "<br>")}</td></tr>
+        </table>
+        <p style="color: #888; font-size: 12px;">This is an automated notification from SHEQSnap.</p>
+      </div>
+    `,
+  });
 }

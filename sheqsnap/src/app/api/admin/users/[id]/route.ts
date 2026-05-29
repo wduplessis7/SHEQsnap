@@ -23,6 +23,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     companyId: body.companyId ?? undefined,
     responsiblePersonId: body.responsiblePersonId ?? undefined,
     active: body.active,
+    mocApprover: body.mocApprover ?? undefined,
   };
 
   if (body.password) {

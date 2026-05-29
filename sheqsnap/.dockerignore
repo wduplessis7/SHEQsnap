@@ -1,0 +1,10 @@
+node_modules
+.next
+dev.db
+*.db
+.env
+.env.*
+!.env.example
+.git
+README.md
+wiki

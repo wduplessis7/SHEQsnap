@@ -7,7 +7,12 @@ import { MobileBottomNav } from "./mobile-bottom-nav";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { cn } from "@/lib/utils";
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+interface DashboardLayoutProps {
+  children: React.ReactNode;
+  initialModules?: string[];
+}
+
+export function DashboardLayout({ children, initialModules }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -27,7 +32,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <Sidebar onClose={() => setSidebarOpen(false)} />
+        <Sidebar onClose={() => setSidebarOpen(false)} initialModules={initialModules} />
       </div>
 
       {/* Main content */}

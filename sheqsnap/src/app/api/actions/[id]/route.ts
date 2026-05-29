@@ -52,11 +52,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: "Action is closed" }, { status: 403 });
   }
 
+  // If owner is being reassigned, sync departmentId to the new owner's department
+  let departmentId: string | null | undefined = undefined;
+  if (body.ownerId && body.ownerId !== existing.ownerId) {
+    const newOwner = await prisma.user.findUnique({ where: { id: body.ownerId }, select: { departmentId: true } });
+    departmentId = newOwner?.departmentId ?? null;
+  }
+
   const updated = await prisma.action.update({
     where: { id: params.id },
     data: {
       description: body.description,
       ownerId: body.ownerId,
+      ...(departmentId !== undefined ? { departmentId } : {}),
       assignedGroupId: body.assignedGroupId !== undefined ? body.assignedGroupId : undefined,
       priority: body.priority,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,

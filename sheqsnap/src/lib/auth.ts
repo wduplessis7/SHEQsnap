@@ -30,6 +30,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Your account has been deactivated");
         }
 
+        if (user.reportingOnly) {
+          throw new Error("This account is for reporting purposes only and cannot log in");
+        }
+
         const isValidPassword = await bcrypt.compare(
           credentials.password,
           user.password

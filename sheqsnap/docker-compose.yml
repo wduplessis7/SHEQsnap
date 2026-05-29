@@ -1,0 +1,21 @@
+services:
+  sheqsnap:
+    image: sheqsnap:latest
+    container_name: sheqsnap
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "file:/data/prod.db"
+      NEXTAUTH_SECRET: "sheqsnap-secret-key-2024-production"
+      NEXTAUTH_URL: "https://sheqsnap.vandilizer.online"
+      VANTECH_LICENSE_URL: "http://192.168.1.106:3030"
+      VANTECH_API_KEY: "demo-vantech-api-key-2026"
+    volumes:
+      - /opt/sheqsnap/data:/data
+    ports:
+      - "3002:3000"
+    networks:
+      - caddy-net
+
+networks:
+  caddy-net:
+    external: true

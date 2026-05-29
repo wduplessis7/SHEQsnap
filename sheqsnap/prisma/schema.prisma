@@ -108,6 +108,7 @@ model Department {
   users      User[]
   nearMisses NearMiss[]
   incidents  Incident[]
+  actions    Action[]
   companies  Company[]
   logEntries LogEntry[]
 }
@@ -164,6 +165,9 @@ model User {
   companyId           String?
   responsiblePersonId String?
   active              Boolean  @default(true)
+  mocApprover         Boolean  @default(false)
+  isLicensed          Boolean  @default(true)
+  reportingOnly       Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -192,6 +196,15 @@ model User {
   schedulesAssigned   ChecklistSchedule[] @relation("ScheduleAssignedUser")
   checklistAssignments ChecklistAssignment[] @relation("AssignmentUser")
   checklistSubmissions ChecklistSubmission[] @relation("SubmissionUser")
+  mocNotifications    MocNotification[]
+
+  // Document management
+  ownedDocuments      Document[]           @relation("DocOwner")
+  authoredVersions    DocVersion[]         @relation("DocVersionAuthor")
+  docStepsAssigned    DocWorkflowStep[]    @relation("DocStepAssignee")
+  docStepsCompleted   DocWorkflowStep[]    @relation("DocStepCompleter")
+  docComments         DocComment[]         @relation("DocCommentAuthor")
+  docAcknowledgements DocAcknowledgement[] @relation("DocAck")
 }
 
 model NearMiss {
@@ -266,6 +279,7 @@ model Action {
   incidentId       String?
   description      String
   ownerId          String
+  departmentId     String?
   assignedGroupId  String?
   priority         ActionPriority @default(MEDIUM)
   dueDate          DateTime?
@@ -276,10 +290,11 @@ model Action {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  owner          User      @relation("ActionOwner", fields: [ownerId], references: [id])
-  assignedGroup  Group?    @relation("ActionAssignedGroup", fields: [assignedGroupId], references: [id])
-  linkedNearMiss NearMiss? @relation(fields: [nearMissId], references: [id])
-  linkedIncident Incident? @relation(fields: [incidentId], references: [id])
+  owner          User        @relation("ActionOwner", fields: [ownerId], references: [id])
+  department     Department? @relation(fields: [departmentId], references: [id])
+  assignedGroup  Group?      @relation("ActionAssignedGroup", fields: [assignedGroupId], references: [id])
+  linkedNearMiss NearMiss?   @relation(fields: [nearMissId], references: [id])
+  linkedIncident Incident?   @relation(fields: [incidentId], references: [id])
   attachments    Attachment[]
   comments       Comment[]
 }
@@ -425,10 +440,11 @@ model ChecklistTemplate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  createdBy   User                    @relation("ChecklistTemplateCreator", fields: [createdById], references: [id])
-  items       ChecklistTemplateItem[]
-  schedules   ChecklistSchedule[]
-  assignments ChecklistAssignment[]
+  createdBy    User                    @relation("ChecklistTemplateCreator", fields: [createdById], references: [id])
+  items        ChecklistTemplateItem[]
+  schedules    ChecklistSchedule[]
+  assignments  ChecklistAssignment[]
+  mocResponses MocChecklistResponse[]
 }
 
 model ChecklistTemplateItem {
@@ -443,6 +459,7 @@ model ChecklistTemplateItem {
 
   template  ChecklistTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
   responses ChecklistItemResponse[]
+  mocItems  MocChecklistItem[]
 }
 
 model ChecklistSchedule {
@@ -641,7 +658,203 @@ model ChangeRequest {
   approvedByName     String?
   approvedAt         DateTime?
   rejectionReason    String?
-  closureNotes       String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  closureNotes            String?
+  checklistTemplateId     String?
+  checklistCompleted      Boolean   @default(false)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  checklist      MocChecklistResponse?
+  notifications  MocNotification[]
+}
+
+model MocChecklistResponse {
+  id              String    @id @default(cuid())
+  changeRequestId String    @unique
+  templateId      String
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  changeRequest ChangeRequest          @relation(fields: [changeRequestId], references: [id], onDelete: Cascade)
+  template      ChecklistTemplate      @relation(fields: [templateId], references: [id])
+  items         MocChecklistItem[]
+}
+
+model MocChecklistItem {
+  id         String   @id @default(cuid())
+  responseId String
+  itemId     String
+  value      String?
+  passed     Boolean?
+  createdAt  DateTime @default(now())
+
+  response MocChecklistResponse  @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  item     ChecklistTemplateItem @relation(fields: [itemId], references: [id])
+}
+
+model MocNotification {
+  id                      String    @id @default(cuid())
+  changeRequestId         String
+  type                    String    // "internal" | "external"
+  userId                  String?
+  firstName               String
+  lastName                String
+  company                 String?
+  email                   String?
+  phone                   String?
+  discussedTelephonically Boolean   @default(false)
+  notifiedAt              DateTime?
+  createdAt               DateTime  @default(now())
+
+  changeRequest ChangeRequest @relation(fields: [changeRequestId], references: [id], onDelete: Cascade)
+  user          User?         @relation(fields: [userId], references: [id])
+}
+
+// ─── Document Management ─────────────────────────────────────────────────────
+
+enum DocType {
+  POLICY
+  PROCEDURE
+  ONE_PAGER
+}
+
+enum DocStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum DocWorkflowAction {
+  REVIEW
+  APPROVE
+}
+
+enum DocWorkflowStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+model Document {
+  id             String    @id @default(cuid())
+  docNumber      String    @unique
+  type           DocType
+  title          String
+  description    String?
+  category       String?
+  tags           String?
+  ownerId        String
+  owner          User      @relation("DocOwner", fields: [ownerId], references: [id])
+  currentVersionId String?
+  status         DocStatus @default(DRAFT)
+  reviewInterval Int?
+  nextReviewDate DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  versions         DocVersion[]
+  acknowledgements DocAcknowledgement[]
+}
+
+model DocVersion {
+  id            String    @id @default(cuid())
+  documentId    String
+  document      Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionNumber String
+  majorVersion  Int
+  minorVersion  Int
+  isDraft       Boolean   @default(true)
+  content       String    @default("{}")
+  changeNotes   String?
+  authorId      String
+  author        User      @relation("DocVersionAuthor", fields: [authorId], references: [id])
+  status        DocStatus @default(DRAFT)
+  publishedAt   DateTime?
+  archivedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  workflowSteps DocWorkflowStep[]
+  comments      DocComment[]
+}
+
+model DocWorkflowStep {
+  id             String            @id @default(cuid())
+  docVersionId   String
+  docVersion     DocVersion        @relation(fields: [docVersionId], references: [id], onDelete: Cascade)
+  stepOrder      Int
+  action         DocWorkflowAction
+  assignedRole   String?
+  assignedUserId String?
+  assignedUser   User?             @relation("DocStepAssignee", fields: [assignedUserId], references: [id])
+  status         DocWorkflowStatus @default(PENDING)
+  dueDate        DateTime?
+  completedAt    DateTime?
+  completedById  String?
+  completedBy    User?             @relation("DocStepCompleter", fields: [completedById], references: [id])
+  note           String?
+  createdAt      DateTime          @default(now())
+}
+
+model DocComment {
+  id           String     @id @default(cuid())
+  docVersionId String
+  docVersion   DocVersion @relation(fields: [docVersionId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User       @relation("DocCommentAuthor", fields: [authorId], references: [id])
+  content      String
+  isReviewNote Boolean    @default(false)
+  resolvedAt   DateTime?
+  resolvedById String?
+  parentId     String?
+  parent       DocComment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies      DocComment[] @relation("CommentThread")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model DocAcknowledgement {
+  id             String   @id @default(cuid())
+  documentId     String
+  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionId      String
+  userId         String
+  user           User     @relation("DocAck", fields: [userId], references: [id])
+  acknowledged   Boolean  @default(false)
+  acknowledgedAt DateTime?
+  dueDate        DateTime?
+  createdAt      DateTime @default(now())
+
+  @@unique([documentId, userId])
+}
+
+// ─── Platform Licensing ───────────────────────────────────────────────────────
+
+enum ServerTier {
+  STARTUP
+  GROWTH
+  BUSINESS
+  CUSTOM
+}
+
+model PlatformLicense {
+  id                    String     @id @default(cuid())
+  clientName            String
+  serverTier            ServerTier @default(STARTUP)
+  setupFee              Float      @default(0)
+  annualLicenseFee      Float      @default(0)
+  monthlyHostingFee     Float      @default(850)
+  perUserRate           Float      @default(385)
+  licenseStart          DateTime   @default(now())
+  licenseRenewal        DateTime
+  backupEnabled         Boolean    @default(true)
+  backupRetentionMonths Int        @default(12)
+  maxLicensedUsers      Int?
+  active                Boolean    @default(true)
+  notes                 String?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
 }

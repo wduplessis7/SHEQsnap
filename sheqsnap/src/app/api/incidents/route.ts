@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       dateOfIncident: new Date(body.dateOfIncident),
       dateReported: body.dateReported ? new Date(body.dateReported) : new Date(),
       reportedById: user.id,
-      departmentId: isContractor ? user.departmentId : (body.departmentId || null),
+      departmentId: body.departmentId || user.departmentId || null,
       location: body.location,
       incidentType: body.incidentType,
       description: body.description,

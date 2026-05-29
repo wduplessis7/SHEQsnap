@@ -39,5 +39,7 @@ export const config = {
     "/inductions/:path*",
     "/moc/:path*",
     "/help/:path*",
+    "/documents/:path*",
+    "/approvals/:path*",
   ],
 };

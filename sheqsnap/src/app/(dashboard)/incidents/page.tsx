@@ -3,9 +3,10 @@
 export const dynamic = "force-dynamic";
 
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { Plus, Search, RefreshCw, HelpCircle } from "lucide-react";
+import { Plus, Search, RefreshCw, HelpCircle, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +20,9 @@ const STATUSES = ["NEW", "SUBMITTED", "UNDER_REVIEW", "ACTION_REQUIRED", "IN_PRO
 const SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 export default function IncidentsPage() {
+  const { data: session, status: sessionStatus } = useSession();
+  const initialized = useRef(false);
+
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -32,6 +36,13 @@ export default function IncidentsPage() {
     incidentType: "all",
     search: "",
   });
+
+  useEffect(() => {
+    if (sessionStatus === "loading" || departments.length === 0 || initialized.current) return;
+    initialized.current = true;
+    const deptId = (session?.user as any)?.departmentId;
+    if (deptId) setFilters((f) => ({ ...f, departmentId: deptId }));
+  }, [sessionStatus, session, departments]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -77,12 +88,20 @@ export default function IncidentsPage() {
           </div>
           <p className="text-gray-500 mt-1">{total} record{total !== 1 ? "s" : ""}</p>
         </div>
-        <Link href="/incidents/new">
-          <Button>
-            <Plus className="h-4 w-4" />
-            Report Incident
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/incidents/reports">
+            <Button variant="outline">
+              <TrendingUp className="h-4 w-4" />
+              Trends
+            </Button>
+          </Link>
+          <Link href="/incidents/new">
+            <Button>
+              <Plus className="h-4 w-4" />
+              Report Incident
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card>
@@ -114,7 +133,7 @@ export default function IncidentsPage() {
               </SelectContent>
             </Select>
             <Select value={filters.departmentId} onValueChange={(v) => updateFilter("departmentId", v)}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="All Depts" /></SelectTrigger>
+              <SelectTrigger className="w-44"><span className="truncate text-sm">{filters.departmentId === "all" ? "All Departments" : departments.find((d) => d.id === filters.departmentId)?.name ?? "All Departments"}</span></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
                 {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}

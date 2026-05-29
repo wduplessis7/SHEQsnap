@@ -3,7 +3,8 @@
 export const dynamic = "force-dynamic";
 
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Plus, Search, RefreshCw, AlertTriangle, HelpCircle } from "lucide-react";
@@ -21,20 +22,32 @@ const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 function ActionsPageInner() {
   const searchParams = useSearchParams();
+  const { data: session, status: sessionStatus } = useSession();
+  const initialized = useRef(false);
+
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [users, setUsers] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
 
   const [filters, setFilters] = useState({
     status: "all",
     priority: "all",
     ownerId: "all",
+    departmentId: "all",
     linkedType: "all",
     overdue: searchParams.get("overdue") === "true" ? "true" : "false",
     search: "",
   });
+
+  useEffect(() => {
+    if (sessionStatus === "loading" || departments.length === 0 || initialized.current) return;
+    initialized.current = true;
+    const deptId = (session?.user as any)?.departmentId;
+    if (deptId) setFilters((f) => ({ ...f, departmentId: deptId }));
+  }, [sessionStatus, session, departments]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -42,15 +55,26 @@ function ActionsPageInner() {
     if (filters.status !== "all") params.set("status", filters.status);
     if (filters.priority !== "all") params.set("priority", filters.priority);
     if (filters.ownerId !== "all") params.set("ownerId", filters.ownerId);
+    if (filters.departmentId !== "all") params.set("departmentId", filters.departmentId);
     if (filters.linkedType !== "all") params.set("linkedType", filters.linkedType);
     if (filters.overdue === "true") params.set("overdue", "true");
     if (filters.search) params.set("search", filters.search);
 
     try {
       const res = await fetch(`/api/actions?${params}`);
+      if (!res.ok) {
+        console.error("Actions API error:", res.status, res.statusText);
+        setItems([]);
+        setTotal(0);
+        return;
+      }
       const data = await res.json();
-      setItems(data.items);
-      setTotal(data.total);
+      setItems(Array.isArray(data.items) ? data.items : []);
+      setTotal(data.total ?? 0);
+    } catch (err) {
+      console.error("Actions fetch failed:", err);
+      setItems([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -58,6 +82,7 @@ function ActionsPageInner() {
 
   useEffect(() => {
     fetch("/api/admin/users").then((r) => r.json()).then((data) => setUsers(data.filter((u: any) => u.active))).catch(() => {});
+    fetch("/api/admin/departments").then((r) => r.json()).then(setDepartments).catch(() => {});
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -114,6 +139,17 @@ function ActionsPageInner() {
                 <SelectItem value="NEAR_MISS">Near Miss</SelectItem>
                 <SelectItem value="INCIDENT">Incident</SelectItem>
                 <SelectItem value="OTHER">Standalone</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filters.departmentId} onValueChange={(v) => updateFilter("departmentId", v)}>
+              <SelectTrigger className="w-44">
+                <span className="truncate text-sm">
+                  {filters.departmentId === "all" ? "All Departments" : departments.find((d) => d.id === filters.departmentId)?.name ?? "All Departments"}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filters.ownerId} onValueChange={(v) => updateFilter("ownerId", v)}>
