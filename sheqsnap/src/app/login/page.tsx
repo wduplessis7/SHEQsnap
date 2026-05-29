@@ -94,33 +94,6 @@ function LoginForm() {
         </Button>
       </form>
 
-      {/* Demo credentials */}
-      <div className="mt-6 rounded-lg bg-gray-50 border border-gray-200 p-4">
-        <p className="text-xs font-semibold text-gray-700 mb-2">Demo Credentials</p>
-        <div className="space-y-1">
-          {[
-            { email: "admin@sheqsnap.com", role: "Admin" },
-            { email: "safety@sheqsnap.com", role: "Safety Officer" },
-            { email: "manager@sheqsnap.com", role: "Manager" },
-            { email: "reporter@sheqsnap.com", role: "Reporter" },
-            { email: "viewer@sheqsnap.com", role: "Viewer" },
-          ].map((cred) => (
-            <button
-              key={cred.email}
-              type="button"
-              onClick={() => {
-                setEmail(cred.email);
-                setPassword("Password123!");
-              }}
-              className="flex items-center justify-between w-full text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-            >
-              <span className="font-medium">{cred.email}</span>
-              <span className="text-gray-400">{cred.role}</span>
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-gray-500 mt-2">Password: Password123!</p>
-      </div>
     </div>
   );
 }
