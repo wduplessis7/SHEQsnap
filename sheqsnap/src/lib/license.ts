@@ -3,7 +3,7 @@ export interface LicenseData {
   modules: string[]
   expiresAt?: string
   maxUsers: number | null
-  monthlyTotal: number | null
+  companyName?: string
 }
 
 const TTL = 86400 * 1000 // 24h
@@ -14,7 +14,7 @@ async function fetchLicenseFromServer(): Promise<LicenseData> {
   const apiKey = process.env.VANTECH_API_KEY
 
   if (!url || !apiKey) {
-    return { status: 'active', modules: ['all'], maxUsers: null, monthlyTotal: null }
+    return { status: 'active', modules: ['all'], maxUsers: null }
   }
 
   try {
@@ -29,7 +29,7 @@ async function fetchLicenseFromServer(): Promise<LicenseData> {
     })
     clearTimeout(timeout)
 
-    if (!res.ok) return { status: 'error', modules: [], maxUsers: null, monthlyTotal: null }
+    if (!res.ok) return { status: 'error', modules: [], maxUsers: null }
 
     const data = await res.json()
     return {
@@ -37,7 +37,7 @@ async function fetchLicenseFromServer(): Promise<LicenseData> {
       modules: data.modules ?? [],
       expiresAt: data.expiresAt,
       maxUsers: data.maxUsers ?? null,
-      monthlyTotal: data.monthlyTotal ?? null,
+      companyName: data.company?.name ?? undefined,
     }
   } catch {
     // License server unreachable — fail open with base modules only
@@ -45,7 +45,6 @@ async function fetchLicenseFromServer(): Promise<LicenseData> {
       status: 'active',
       modules: ['actions', 'near-misses', 'observations', 'incidents'],
       maxUsers: null,
-      monthlyTotal: null,
     }
   }
 }

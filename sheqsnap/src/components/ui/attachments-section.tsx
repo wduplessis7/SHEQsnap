@@ -83,7 +83,9 @@ export function AttachmentsSection({
               <FileIcon className="h-4 w-4 text-gray-400 shrink-0" />
               <div className="flex-1 min-w-0">
                 <a
-                  href={`/uploads/${att.filename}`}
+                  href={process.env.NEXT_PUBLIC_S3_PUBLIC_URL
+                    ? `${process.env.NEXT_PUBLIC_S3_PUBLIC_URL}/${att.filename}`
+                    : `/uploads/${att.filename.replace(/^uploads\//, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm font-medium text-blue-600 hover:underline truncate block"

@@ -9,6 +9,12 @@ services:
       NEXTAUTH_URL: "https://sheqsnap.vandilizer.online"
       VANTECH_LICENSE_URL: "http://192.168.1.106:3030"
       VANTECH_API_KEY: "demo-vantech-api-key-2026"
+      AWS_REGION: ${AWS_REGION:-af-south-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-sheqsnap}
+      NEXT_PUBLIC_S3_PUBLIC_URL: ${NEXT_PUBLIC_S3_PUBLIC_URL:-https://sheqsnap.s3.af-south-1.amazonaws.com}
+      S3_TENANT_PREFIX: "qa"
     volumes:
       - /opt/sheqsnap/data:/data
     ports:

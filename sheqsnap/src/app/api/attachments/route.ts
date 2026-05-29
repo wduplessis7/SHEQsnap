@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { uploadFile, getFileUrl, buildStorageKey } from "@/lib/storage";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -21,16 +21,16 @@ export async function POST(req: NextRequest) {
   if (!file) return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
 
   const ext = path.extname(file.name);
-  const filename = `${randomUUID()}${ext}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  const filePath = path.join(uploadDir, filename);
-
+  const key = buildStorageKey(`${randomUUID()}${ext}`);
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filePath, buffer);
+
+  await uploadFile(key, buffer, file.type);
+
+  console.log("[attachments] creating record", { key, uploadedById: user.id, nearMissId, incidentId, actionId });
 
   const attachment = await prisma.attachment.create({
     data: {
-      filename,
+      filename: key,
       originalName: file.name,
       mimeType: file.type,
       size: file.size,
@@ -44,5 +44,5 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(attachment, { status: 201 });
+  return NextResponse.json({ ...attachment, url: getFileUrl(key) }, { status: 201 });
 }

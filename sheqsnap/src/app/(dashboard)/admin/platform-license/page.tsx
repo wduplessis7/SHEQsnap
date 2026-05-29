@@ -3,81 +3,43 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, CreditCard, Users, ClipboardList, DollarSign, Calendar, Edit, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import { RefreshCw, Users, ClipboardList, Calendar, ExternalLink, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-const SERVER_TIER_COLORS: Record<string, string> = {
-  STARTUP: "bg-green-100 text-green-700",
-  GROWTH: "bg-blue-100 text-blue-700",
-  BUSINESS: "bg-purple-100 text-purple-700",
-  CUSTOM: "bg-orange-100 text-orange-700",
+const MODULE_LABELS: Record<string, string> = {
+  "actions": "Actions",
+  "near-misses": "Near Misses",
+  "observations": "Observations",
+  "incidents": "Incidents",
+  "moc": "MOC",
+  "checklists": "Checklists",
+  "inductions": "Inductions",
+  "licenses": "Licenses",
+  "reports": "Reports",
+  "documents": "Documents",
 };
-
-const SERVER_TIER_FEES: Record<string, number> = {
-  STARTUP: 650,
-  GROWTH: 1850,
-  BUSINESS: 3500,
-  CUSTOM: 0,
-};
-
-const SERVER_TIER_LABELS: Record<string, string> = {
-  STARTUP: "Startup (up to 25 users)",
-  GROWTH: "Growth (up to 100 users)",
-  BUSINESS: "Business (up to 500 users)",
-  CUSTOM: "Custom (quoted)",
-};
-
-function formatCurrency(amount: number) {
-  return `R ${amount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`;
-}
 
 function formatDate(dateStr: string | null | undefined) {
-  if (!dateStr) return "—";
+  if (!dateStr) return "No expiry";
   return new Date(dateStr).toLocaleDateString("en-ZA", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+    year: "numeric", month: "short", day: "numeric",
   });
 }
 
-type LicenseData = {
-  id: string;
-  clientName: string;
-  serverTier: string;
-  setupFee: number;
-  annualLicenseFee: number;
-  monthlyHostingFee: number;
-  perUserRate: number;
-  monthlySupportHours: number;
-  supportHourlyRate: number;
-  monthlyDevHours: number;
-  devHourlyRate: number;
-  licenseStart: string;
-  licenseRenewal: string;
-  backupEnabled: boolean;
-  backupRetentionMonths: number;
-  maxLicensedUsers: number | null;
-  active: boolean;
-  notes: string | null;
+type LicenseServer = {
+  status: string;
+  companyName: string | null;
+  modules: string[];
+  expiresAt: string | null;
+  maxUsers: number | null;
 };
 
 type Stats = {
   licensedUserCount: number;
   reportingOnlyCount: number;
-  monthlyUserCost: number;
-  monthlySupportCost: number;
-  monthlyDevCost: number;
-  totalMonthlyCost: number;
-  daysUntilRenewal: number | null;
-  renewalAlert: boolean;
-  serverMaxUsers: number | null;
-  serverMonthlyTotal: number | null;
 };
 
 type UserRow = {
@@ -90,35 +52,11 @@ type UserRow = {
   reportingOnly: boolean;
 };
 
-const EMPTY_FORM = {
-  clientName: "",
-  serverTier: "STARTUP",
-  setupFee: 1500,
-  annualLicenseFee: 0,
-  monthlyHostingFee: 650,
-  perUserRate: 270,
-  monthlySupportHours: 0,
-  supportHourlyRate: 385,
-  monthlyDevHours: 0,
-  devHourlyRate: 585,
-  licenseStart: new Date().toISOString().split("T")[0],
-  licenseRenewal: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-  backupEnabled: true,
-  backupRetentionMonths: 12,
-  maxLicensedUsers: "" as string | number,
-  active: true,
-  notes: "",
-};
-
 export default function PlatformLicensePage() {
-  const [license, setLicense] = useState<LicenseData | null>(null);
+  const [licenseServer, setLicenseServer] = useState<LicenseServer | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editOpen, setEditOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [form, setForm] = useState({ ...EMPTY_FORM });
 
   const fetchData = async () => {
     setLoading(true);
@@ -128,7 +66,7 @@ export default function PlatformLicensePage() {
         fetch("/api/admin/platform-license/users"),
       ]);
       const licData = await licRes.json();
-      setLicense(licData.license ?? null);
+      setLicenseServer(licData.licenseServer ?? null);
       setStats(licData.stats ?? null);
       setUsers(await userRes.json());
     } finally {
@@ -136,93 +74,13 @@ export default function PlatformLicensePage() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  function openEdit() {
-    if (license) {
-      setForm({
-        clientName: license.clientName,
-        serverTier: license.serverTier,
-        setupFee: license.setupFee,
-        annualLicenseFee: license.annualLicenseFee,
-        monthlyHostingFee: license.monthlyHostingFee,
-        perUserRate: license.perUserRate,
-        monthlySupportHours: license.monthlySupportHours ?? 0,
-        supportHourlyRate: license.supportHourlyRate,
-        monthlyDevHours: license.monthlyDevHours ?? 0,
-        devHourlyRate: license.devHourlyRate,
-        licenseStart: license.licenseStart.split("T")[0],
-        licenseRenewal: license.licenseRenewal.split("T")[0],
-        backupEnabled: license.backupEnabled,
-        backupRetentionMonths: license.backupRetentionMonths,
-        maxLicensedUsers: license.maxLicensedUsers ?? "",
-        active: license.active,
-        notes: license.notes ?? "",
-      });
-    } else {
-      setForm({ ...EMPTY_FORM });
-    }
-    setError("");
-    setEditOpen(true);
-  }
-
-  function setField(key: string, value: any) {
-    setForm((prev) => {
-      const updated = { ...prev, [key]: value };
-      // Auto-set hosting fee when tier changes
-      if (key === "serverTier" && SERVER_TIER_FEES[value] !== undefined) {
-        updated.monthlyHostingFee = SERVER_TIER_FEES[value];
-      }
-      return updated;
-    });
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    setError("");
-    try {
-      const payload = {
-        ...form,
-        maxLicensedUsers: form.maxLicensedUsers === "" ? null : Number(form.maxLicensedUsers),
-        setupFee: Number(form.setupFee),
-        annualLicenseFee: Number(form.annualLicenseFee),
-        monthlyHostingFee: Number(form.monthlyHostingFee),
-        perUserRate: Number(form.perUserRate),
-        monthlySupportHours: Number(form.monthlySupportHours),
-        supportHourlyRate: Number(form.supportHourlyRate),
-        monthlyDevHours: Number(form.monthlyDevHours),
-        devHourlyRate: Number(form.devHourlyRate),
-        backupRetentionMonths: Number(form.backupRetentionMonths),
-        ...(license ? { id: license.id } : {}),
-      };
-      const method = license ? "PUT" : "POST";
-      const res = await fetch("/api/admin/platform-license", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        await fetchData();
-        setEditOpen(false);
-      } else {
-        const err = await res.json();
-        setError(err.error || "Failed to save");
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
+  useEffect(() => { fetchData(); }, []);
 
   async function toggleUserFlag(userId: string, flag: "isLicensed" | "reportingOnly", value: boolean) {
-    // Optimistically update UI
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id !== userId) return u;
-        if (flag === "reportingOnly" && value) {
-          return { ...u, reportingOnly: true, isLicensed: false };
-        }
+        if (flag === "reportingOnly" && value) return { ...u, reportingOnly: true, isLicensed: false };
         return { ...u, [flag]: value };
       })
     );
@@ -231,18 +89,18 @@ export default function PlatformLicensePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, [flag]: value }),
     });
-    // Refresh stats
     const res = await fetch("/api/admin/platform-license");
     const data = await res.json();
     setStats(data.stats);
-    setLicense(data.license ?? null);
+    setLicenseServer(data.licenseServer ?? null);
   }
 
+  const isActive = licenseServer?.status === "active";
   const approachingLimit =
-    license?.maxLicensedUsers != null &&
+    licenseServer?.maxUsers != null &&
     stats != null &&
-    license.maxLicensedUsers > 0 &&
-    stats.licensedUserCount >= license.maxLicensedUsers * 0.9;
+    licenseServer.maxUsers > 0 &&
+    stats.licensedUserCount >= licenseServer.maxUsers * 0.9;
 
   if (loading) {
     return (
@@ -258,197 +116,96 @@ export default function PlatformLicensePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Platform License</h1>
-          <p className="text-gray-500 mt-1">SaaS billing and user license management</p>
+          <p className="text-gray-500 mt-1">License status and user assignments</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={fetchData}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button onClick={openEdit}>
-            <Edit className="h-4 w-4 mr-1" />
-            {license ? "Edit License" : "Setup License"}
+          <Button variant="outline" asChild>
+            <a href="http://192.168.1.106:3030" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              License Server
+            </a>
           </Button>
         </div>
       </div>
 
-      {/* Summary cards */}
-      {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* Server Tier */}
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <CreditCard className="h-4 w-4 text-gray-400" />
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Server Tier</span>
-              </div>
-              {license ? (
-                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-sm font-semibold ${SERVER_TIER_COLORS[license.serverTier] ?? "bg-gray-100 text-gray-700"}`}>
-                  {license.serverTier}
-                </span>
-              ) : (
-                <span className="text-gray-400 text-sm">Not set</span>
-              )}
-              {license && (
-                <p className="text-xs text-gray-400 mt-1">{license.clientName}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Licensed Users */}
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="h-4 w-4 text-gray-400" />
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Licensed Users</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.licensedUserCount}
-                <span className="text-sm font-normal text-gray-400 ml-1">
-                  / {stats.serverMaxUsers != null ? stats.serverMaxUsers : (license?.maxLicensedUsers ?? "Unlimited")}
-                </span>
-              </p>
-              {approachingLimit && (
-                <p className="text-xs text-orange-600 mt-1 font-medium">Approaching limit</p>
-              )}
-              {stats.serverMaxUsers != null && (
-                <p className="text-xs text-gray-400 mt-1">Limit set by VanTech License Server</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Reporting Only */}
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <ClipboardList className="h-4 w-4 text-gray-400" />
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Reporting Only</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{stats.reportingOnlyCount}</p>
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 mt-1">
-                Free
-              </span>
-            </CardContent>
-          </Card>
-
-          {/* Monthly Total */}
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="h-4 w-4 text-gray-400" />
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Monthly Total</span>
-              </div>
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(stats.totalMonthlyCost)}</p>
-              {stats.serverMonthlyTotal != null && (
-                <>
-                  <p className="text-sm font-semibold text-blue-700 mt-1">{formatCurrency(stats.serverMonthlyTotal)}</p>
-                  <p className="text-xs text-gray-400">via License Server</p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Renewal Date */}
-          <Card className={stats.renewalAlert ? "border-red-300" : ""}>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className={`h-4 w-4 ${stats.renewalAlert ? "text-red-400" : "text-gray-400"}`} />
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Renewal</span>
-              </div>
-              <p className={`text-sm font-semibold ${stats.renewalAlert ? "text-red-600" : "text-gray-900"}`}>
-                {formatDate(license?.licenseRenewal)}
-              </p>
-              {stats.daysUntilRenewal != null && (
-                <p className={`text-xs mt-1 ${stats.renewalAlert ? "text-red-500 font-medium" : "text-gray-400"}`}>
-                  {stats.daysUntilRenewal} days
+      {/* License status card */}
+      <Card>
+        <CardContent className="pt-5 pb-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              {isActive
+                ? <CheckCircle className="h-5 w-5 text-green-500" />
+                : <XCircle className="h-5 w-5 text-red-500" />}
+              <div>
+                <p className="font-semibold text-gray-900">
+                  {licenseServer?.companyName ?? "SHEQSnap"}
                 </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Billing Breakdown */}
-      {license && stats && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Billing Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {approachingLimit && (
-              <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
-                <p className="text-sm text-orange-700 font-medium">
-                  Approaching user limit — {stats.licensedUserCount} of {license.maxLicensedUsers} licensed users used
-                </p>
+                <p className="text-sm text-gray-500 capitalize">{licenseServer?.status ?? "Unknown"}</p>
               </div>
-            )}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-gray-600">
-                  VPS Hosting ({license.serverTier} tier)
-                </span>
-                <span className="text-sm font-medium">{formatCurrency(license.monthlyHostingFee)}/month</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-gray-600">
-                  User Licenses ({stats.licensedUserCount} × {formatCurrency(license.perUserRate)})
-                </span>
-                <span className="text-sm font-medium">{formatCurrency(stats.monthlyUserCost)}/month</span>
-              </div>
-              {(license.monthlySupportHours ?? 0) > 0 && (
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-gray-600">
-                    Support Hours ({license.monthlySupportHours} hrs × {formatCurrency(license.supportHourlyRate)})
-                  </span>
-                  <span className="text-sm font-medium">{formatCurrency(stats.monthlySupportCost)}/month</span>
-                </div>
-              )}
-              {(license.monthlyDevHours ?? 0) > 0 && (
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-gray-600">
-                    Development Hours ({license.monthlyDevHours} hrs × {formatCurrency(license.devHourlyRate)})
-                  </span>
-                  <span className="text-sm font-medium">{formatCurrency(stats.monthlyDevCost)}/month</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center py-2 border-b bg-gray-50 px-2 rounded">
-                <span className="text-sm font-bold text-gray-900">Total Monthly</span>
-                <span className="text-sm font-bold text-gray-900">{formatCurrency(stats.totalMonthlyCost)}/month</span>
-              </div>
-              {license.setupFee > 0 && (
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-gray-600">Once-off Setup Fee</span>
-                  <span className="text-sm font-medium">{formatCurrency(license.setupFee)}</span>
-                </div>
-              )}
-              {license.annualLicenseFee > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-gray-600">Annual License Fee</span>
-                  <span className="text-sm font-medium">{formatCurrency(license.annualLicenseFee)}/year</span>
-                </div>
-              )}
-              {license.backupEnabled && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-gray-500">
-                    Backup — {license.backupRetentionMonths} restore points, 1 year retention
-                  </span>
-                  <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">Included</span>
-                </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(licenseServer?.modules ?? []).map((mod) => (
+                <Badge key={mod} variant="secondary">
+                  {MODULE_LABELS[mod] ?? mod}
+                </Badge>
+              ))}
+              {(licenseServer?.modules ?? []).includes("all") && (
+                <Badge variant="secondary">All Modules</Badge>
               )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
 
-      {!license && !loading && (
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Licensed Users */}
         <Card>
-          <CardContent className="py-10 text-center">
-            <CreditCard className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 mb-4">No platform license configured yet.</p>
-            <Button onClick={openEdit}>Setup Platform License</Button>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-4 w-4 text-gray-400" />
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Licensed Users</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">
+              {stats?.licensedUserCount ?? 0}
+              <span className="text-sm font-normal text-gray-400 ml-1">
+                / {licenseServer?.maxUsers ?? "Unlimited"}
+              </span>
+            </p>
+            {approachingLimit && (
+              <p className="text-xs text-orange-600 mt-1 font-medium flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" /> Approaching limit
+              </p>
+            )}
           </CardContent>
         </Card>
-      )}
+
+        {/* Reporting Only */}
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ClipboardList className="h-4 w-4 text-gray-400" />
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Reporting Only</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{stats?.reportingOnlyCount ?? 0}</p>
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 mt-1">Free</span>
+          </CardContent>
+        </Card>
+
+        {/* Expiry */}
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="h-4 w-4 text-gray-400" />
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">License Expiry</span>
+            </div>
+            <p className="text-sm font-semibold text-gray-900">{formatDate(licenseServer?.expiresAt)}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Users Table */}
       <Card>
@@ -471,9 +228,7 @@ export default function PlatformLicensePage() {
                 <tr key={user.id} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {user.name}
-                    {!user.active && (
-                      <span className="ml-2 text-xs text-gray-400">(inactive)</span>
-                    )}
+                    {!user.active && <span className="ml-2 text-xs text-gray-400">(inactive)</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-600">{user.email}</td>
                   <td className="px-4 py-3">
@@ -507,112 +262,14 @@ export default function PlatformLicensePage() {
             </tbody>
             <tfoot>
               <tr className="bg-gray-50">
-                <td colSpan={3} className="px-4 py-2 text-xs font-medium text-gray-500">
-                  Totals
-                </td>
-                <td className="px-4 py-2 text-center text-xs font-semibold text-gray-700">
-                  {stats?.licensedUserCount ?? 0} licensed
-                </td>
-                <td className="px-4 py-2 text-center text-xs font-semibold text-gray-700">
-                  {stats?.reportingOnlyCount ?? 0} reporting
-                </td>
+                <td colSpan={3} className="px-4 py-2 text-xs font-medium text-gray-500">Totals</td>
+                <td className="px-4 py-2 text-center text-xs font-semibold text-gray-700">{stats?.licensedUserCount ?? 0} licensed</td>
+                <td className="px-4 py-2 text-center text-xs font-semibold text-gray-700">{stats?.reportingOnlyCount ?? 0} reporting</td>
               </tr>
             </tfoot>
           </table>
         </div>
       </Card>
-
-      {/* Edit / Create License Form */}
-      {editOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b">
-              <h2 className="text-lg font-semibold">{license ? "Edit Platform License" : "Setup Platform License"}</h2>
-              <button onClick={() => setEditOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
-            </div>
-            <div className="px-6 py-4 space-y-4">
-              <div>
-                <Label>Client Name *</Label>
-                <Input value={form.clientName} onChange={(e) => setField("clientName", e.target.value)} className="mt-1" placeholder="Company name" />
-              </div>
-              <div>
-                <Label>Server Tier *</Label>
-                <Select value={form.serverTier} onValueChange={(v) => setField("serverTier", v)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(SERVER_TIER_LABELS).map(([k, label]) => (
-                      <SelectItem key={k} value={k}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Monthly Hosting Fee (R)</Label>
-                  <Input type="number" value={form.monthlyHostingFee} onChange={(e) => setField("monthlyHostingFee", e.target.value)} className="mt-1" />
-                </div>
-                <div>
-                  <Label>Per User Rate (R/month)</Label>
-                  <Input type="number" value={form.perUserRate} onChange={(e) => setField("perUserRate", e.target.value)} className="mt-1" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Monthly Support Hours</Label>
-                  <Input type="number" value={form.monthlySupportHours} onChange={(e) => setField("monthlySupportHours", e.target.value)} className="mt-1" placeholder="0" />
-                </div>
-                <div>
-                  <Label>Support Rate (R/hr)</Label>
-                  <Input type="number" value={form.supportHourlyRate} onChange={(e) => setField("supportHourlyRate", e.target.value)} className="mt-1" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Monthly Dev Hours</Label>
-                  <Input type="number" value={form.monthlyDevHours} onChange={(e) => setField("monthlyDevHours", e.target.value)} className="mt-1" placeholder="0" />
-                </div>
-                <div>
-                  <Label>Dev Rate (R/hr)</Label>
-                  <Input type="number" value={form.devHourlyRate} onChange={(e) => setField("devHourlyRate", e.target.value)} className="mt-1" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Setup Fee (R once-off)</Label>
-                  <Input type="number" value={form.setupFee} onChange={(e) => setField("setupFee", e.target.value)} className="mt-1" />
-                </div>
-                <div>
-                  <Label>Annual License Fee (R)</Label>
-                  <Input type="number" value={form.annualLicenseFee} onChange={(e) => setField("annualLicenseFee", e.target.value)} className="mt-1" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>License Start</Label>
-                  <Input type="date" value={form.licenseStart} onChange={(e) => setField("licenseStart", e.target.value)} className="mt-1" />
-                </div>
-                <div>
-                  <Label>License Renewal *</Label>
-                  <Input type="date" value={form.licenseRenewal} onChange={(e) => setField("licenseRenewal", e.target.value)} className="mt-1" />
-                </div>
-              </div>
-              <div>
-                <Label>Max Licensed Users (blank = unlimited)</Label>
-                <Input type="number" value={form.maxLicensedUsers} onChange={(e) => setField("maxLicensedUsers", e.target.value)} className="mt-1" placeholder="Unlimited" />
-              </div>
-              <div>
-                <Label>Notes</Label>
-                <Input value={form.notes} onChange={(e) => setField("notes", e.target.value)} className="mt-1" placeholder="Optional notes" />
-              </div>
-              {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">{error}</p>}
-            </div>
-            <div className="flex justify-end gap-2 px-6 py-4 border-t">
-              <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : license ? "Save Changes" : "Create License"}</Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
