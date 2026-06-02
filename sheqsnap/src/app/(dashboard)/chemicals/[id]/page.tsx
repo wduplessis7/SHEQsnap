@@ -278,7 +278,7 @@ export default function ChemicalDetailPage() {
     if (!confirm("Remove this component?")) return;
     const res = await fetch(`/api/chemicals/${id}/components/${compId}`, { method: "DELETE" });
     if (res.ok) {
-      setItem((prev: any) => ({ ...prev, components: prev.components.filter((c: any) => c.id !== compId) }));
+      setItem((prev: any) => ({ ...prev, components: (prev.components || []).filter((c: any) => c.id !== compId) }));
     }
   }
 
@@ -330,7 +330,7 @@ export default function ChemicalDetailPage() {
     if (!confirm("Delete this SDS document?")) return;
     const res = await fetch(`/api/chemicals/${id}/sds/${sdsId}`, { method: "DELETE" });
     if (res.ok) {
-      setItem((prev: any) => ({ ...prev, sdsDocuments: prev.sdsDocuments.filter((s: any) => s.id !== sdsId) }));
+      setItem((prev: any) => ({ ...prev, sdsDocuments: (prev.sdsDocuments || []).filter((s: any) => s.id !== sdsId) }));
     }
   }
 
@@ -370,7 +370,7 @@ export default function ChemicalDetailPage() {
     if (!confirm("Delete this storage location?")) return;
     const res = await fetch(`/api/chemicals/${id}/locations/${locId}`, { method: "DELETE" });
     if (res.ok) {
-      setItem((prev: any) => ({ ...prev, locations: prev.locations.filter((l: any) => l.id !== locId) }));
+      setItem((prev: any) => ({ ...prev, locations: (prev.locations || []).filter((l: any) => l.id !== locId) }));
     }
   }
 
