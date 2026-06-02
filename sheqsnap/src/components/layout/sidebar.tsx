@@ -118,7 +118,7 @@ export function Sidebar({ onClose, initialModules }: SidebarProps) {
       heading: "Quality",
       items: [
         { href: "/licenses", label: "Licenses", icon: FileCheck, module: "licenses" },
-        { href: "/chemicals", label: "Chemicals", icon: FlaskConical, module: "chemicals" },
+        { href: "/chemicals", label: "MSDS", icon: FlaskConical, module: "chemicals" },
         ...(!isContractor ? [{ href: "/checklists", label: "Checklists", icon: ClipboardList, module: "checklists" }] : []),
       ],
     },
