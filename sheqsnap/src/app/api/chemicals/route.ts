@@ -18,9 +18,8 @@ export async function GET(req: NextRequest) {
 
   if (search) {
     where.OR = [
-      { name: { contains: search } },
+      { productName: { contains: search } },
       { tradeName: { contains: search } },
-      { casNumber: { contains: search } },
       { referenceNo: { contains: search } },
     ];
   }
@@ -30,17 +29,17 @@ export async function GET(req: NextRequest) {
   }
 
   const [items, total] = await Promise.all([
-    (prisma as any).chemical.findMany({
+    (prisma as any).chemicalItem.findMany({
       where,
       include: {
         addedBy: { select: { id: true, name: true } },
-        _count: { select: { sdsDocuments: true, locations: true } },
+        _count: { select: { components: true, sdsDocuments: true } },
       },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
     }),
-    (prisma as any).chemical.count({ where }),
+    (prisma as any).chemicalItem.count({ where }),
   ]);
 
   return NextResponse.json({ items, total, page, limit });
@@ -53,32 +52,24 @@ export async function POST(req: NextRequest) {
   const user = session.user as any;
   const body = await req.json();
 
-  const referenceNo = await generateReferenceNo("CHEM", "chemical");
+  const referenceNo = await generateReferenceNo("CHEM", "chemicalItem");
 
-  const chemical = await (prisma as any).chemical.create({
+  const item = await (prisma as any).chemicalItem.create({
     data: {
       referenceNo,
-      name: body.name,
+      productName: body.productName,
       tradeName: body.tradeName || null,
-      casNumber: body.casNumber || null,
-      formula: body.formula || null,
       manufacturer: body.manufacturer || null,
       supplier: body.supplier || null,
-      ghsPictograms: body.ghsPictograms ? JSON.stringify(body.ghsPictograms) : "[]",
-      hazardClass: body.hazardClass || null,
-      signalWord: body.signalWord || null,
-      hazardStatements: body.hazardStatements ? JSON.stringify(body.hazardStatements) : "[]",
-      precautionaryStatements: body.precautionaryStatements ? JSON.stringify(body.precautionaryStatements) : "[]",
-      flashPoint: body.flashPoint || null,
-      boilingPoint: body.boilingPoint || null,
       physicalState: body.physicalState || null,
       colour: body.colour || null,
       odour: body.odour || null,
-      isHazardous: body.isHazardous !== undefined ? body.isHazardous : true,
+      flashPoint: body.flashPoint || null,
+      boilingPoint: body.boilingPoint || null,
       unNumber: body.unNumber || null,
       mhiThreshold: body.mhiThreshold || null,
       mhiQuantityOnSite: body.mhiQuantityOnSite || null,
-      pubchemCid: body.pubchemCid || null,
+      isHazardous: body.isHazardous !== undefined ? body.isHazardous : true,
       emergencyContact: body.emergencyContact || null,
       poisonCentre: body.poisonCentre || null,
       notes: body.notes || null,
@@ -89,7 +80,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  await writeAuditLog("Chemical", chemical.id, "CREATE", user.id, { referenceNo });
+  await writeAuditLog("ChemicalItem", item.id, "CREATE", user.id, { referenceNo });
 
-  return NextResponse.json(chemical, { status: 201 });
+  return NextResponse.json(item, { status: 201 });
 }

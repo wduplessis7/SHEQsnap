@@ -5,12 +5,15 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
   const location = await (prisma as any).chemicalLocation.findUnique({
     where: { qrToken: params.token },
     include: {
-      chemical: {
+      chemicalItem: {
         include: {
           sdsDocuments: {
-            where: { deletedAt: null, isActive: true },
+            where: { isActive: true, deletedAt: null },
             orderBy: { createdAt: "desc" },
             take: 1,
+          },
+          components: {
+            include: { library: true },
           },
         },
       },
@@ -21,35 +24,53 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const chemical = location.chemical;
+  const chemicalItem = location.chemicalItem;
 
-  if (chemical.deletedAt) {
+  if (chemicalItem.deletedAt) {
     return NextResponse.json({ error: "Chemical record is no longer active" }, { status: 403 });
   }
 
-  const activeSds = chemical.sdsDocuments?.[0] || null;
+  const activeSds = chemicalItem.sdsDocuments?.[0] || null;
+
+  // Parse JSON string arrays on library fields
+  const components = (chemicalItem.components || []).map((comp: any) => {
+    const lib = comp.library;
+    return {
+      concentration: comp.concentration,
+      notes: comp.notes,
+      library: lib
+        ? {
+            name: lib.name,
+            casNumber: lib.casNumber,
+            ghsPictograms: lib.ghsPictograms ? JSON.parse(lib.ghsPictograms) : [],
+            signalWord: lib.signalWord,
+            hazardStatements: lib.hazardStatements ? JSON.parse(lib.hazardStatements) : [],
+            precautionaryStatements: lib.precautionaryStatements
+              ? JSON.parse(lib.precautionaryStatements)
+              : [],
+          }
+        : null,
+    };
+  });
 
   return NextResponse.json({
     locationName: location.locationName,
     buildingArea: location.buildingArea,
     quantity: location.quantity,
     unit: location.unit,
-    chemical: {
-      name: chemical.name,
-      tradeName: chemical.tradeName,
-      casNumber: chemical.casNumber,
-      ghsPictograms: chemical.ghsPictograms,
-      hazardStatements: chemical.hazardStatements,
-      precautionaryStatements: chemical.precautionaryStatements,
-      signalWord: chemical.signalWord,
-      hazardClass: chemical.hazardClass,
-      physicalState: chemical.physicalState,
-      emergencyContact: chemical.emergencyContact,
-      poisonCentre: chemical.poisonCentre,
-      flashPoint: chemical.flashPoint,
+    storageConditions: location.storageConditions,
+    chemicalItem: {
+      productName: chemicalItem.productName,
+      tradeName: chemicalItem.tradeName,
+      physicalState: chemicalItem.physicalState,
+      flashPoint: chemicalItem.flashPoint,
+      emergencyContact: chemicalItem.emergencyContact,
+      poisonCentre: chemicalItem.poisonCentre,
+      isHazardous: chemicalItem.isHazardous,
     },
     activeSds: activeSds
       ? { filename: activeSds.filename, originalName: activeSds.originalName }
       : null,
+    components,
   });
 }

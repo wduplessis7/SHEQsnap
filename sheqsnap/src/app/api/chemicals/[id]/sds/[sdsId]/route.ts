@@ -22,7 +22,7 @@ export async function DELETE(
     where: { id: params.sdsId },
   });
 
-  if (!doc || doc.chemicalId !== params.id) {
+  if (!doc || doc.chemicalItemId !== params.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -32,7 +32,7 @@ export async function DELETE(
     data: { deletedAt, isActive: false },
   });
 
-  await writeAuditLog("Chemical", params.id, "SDS_DELETE", user.id, {
+  await writeAuditLog("ChemicalItem", params.id, "SDS_DELETE", user.id, {
     sdsId: params.sdsId,
     originalName: doc.originalName,
     deletedAt: deletedAt.toISOString(),

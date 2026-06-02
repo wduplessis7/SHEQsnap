@@ -10,7 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const docs = await (prisma as any).sdsDocument.findMany({
     where: {
-      chemicalId: params.id,
+      chemicalItemId: params.id,
       deletedAt: null,
       isActive: true,
     },
@@ -30,16 +30,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const user = session.user as any;
   const body = await req.json();
 
-  // Verify chemical exists
-  const chemical = await (prisma as any).chemical.findUnique({ where: { id: params.id } });
-  if (!chemical) return NextResponse.json({ error: "Chemical not found" }, { status: 404 });
+  // Verify item exists
+  const item = await (prisma as any).chemicalItem.findUnique({ where: { id: params.id } });
+  if (!item) return NextResponse.json({ error: "Chemical item not found" }, { status: 404 });
 
   const language = body.language || "English";
 
-  // Deactivate other docs with same language
+  // Deactivate existing docs in the same language
   await (prisma as any).sdsDocument.updateMany({
     where: {
-      chemicalId: params.id,
+      chemicalItemId: params.id,
       language,
       deletedAt: null,
       isActive: true,
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const doc = await (prisma as any).sdsDocument.create({
     data: {
-      chemicalId: params.id,
+      chemicalItemId: params.id,
       version: body.version || "1.0",
       language,
       effectiveDate: body.effectiveDate ? new Date(body.effectiveDate) : null,
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   });
 
-  await writeAuditLog("Chemical", params.id, "SDS_UPLOAD", user.id, {
+  await writeAuditLog("ChemicalItem", params.id, "SDS_UPLOAD", user.id, {
     sdsId: doc.id,
     filename: doc.originalName,
     language,

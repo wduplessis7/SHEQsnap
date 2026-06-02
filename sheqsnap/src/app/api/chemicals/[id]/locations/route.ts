@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const locations = await (prisma as any).chemicalLocation.findMany({
-    where: { chemicalId: params.id },
+    where: { chemicalItemId: params.id },
     orderBy: { createdAt: "asc" },
   });
 
@@ -23,13 +23,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const user = session.user as any;
   const body = await req.json();
 
-  // Verify chemical exists
-  const chemical = await (prisma as any).chemical.findUnique({ where: { id: params.id } });
-  if (!chemical) return NextResponse.json({ error: "Chemical not found" }, { status: 404 });
+  // Verify item exists
+  const item = await (prisma as any).chemicalItem.findUnique({ where: { id: params.id } });
+  if (!item) return NextResponse.json({ error: "Chemical item not found" }, { status: 404 });
 
   const location = await (prisma as any).chemicalLocation.create({
     data: {
-      chemicalId: params.id,
+      chemicalItemId: params.id,
       locationName: body.locationName,
       buildingArea: body.buildingArea || null,
       quantity: body.quantity !== undefined ? body.quantity : null,
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   });
 
-  await writeAuditLog("Chemical", params.id, "LOCATION_ADD", user.id, {
+  await writeAuditLog("ChemicalItem", params.id, "LOCATION_ADD", user.id, {
     locationId: location.id,
     locationName: location.locationName,
   });

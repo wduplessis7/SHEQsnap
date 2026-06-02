@@ -207,7 +207,7 @@ model User {
   conflictsReviewed       ConflictOfInterest[]  @relation("ConflictReviewer")
 
   // Chemical Register
-  chemicalsAdded      Chemical[]           @relation("ChemicalAddedBy")
+  chemicalsAdded      ChemicalItem[]       @relation("ChemicalItemAddedBy")
   sdsUploaded         SdsDocument[]        @relation("SdsUploadedBy")
 
   // Document management
@@ -1053,78 +1053,91 @@ model PlatformLicense {
 
 // ─── Chemical Register & SDS Library ────────────────────────────────────────
 
-model Chemical {
-  id              String   @id @default(cuid())
-  referenceNo     String   @unique
-  name            String
-  tradeName       String?
-  casNumber       String?
-  formula         String?
-  manufacturer    String?
-  supplier        String?
-
-  // GHS Classification (stored as JSON strings)
-  ghsPictograms          String @default("[]")
-  hazardClass            String?
-  signalWord             String?  // "DANGER" | "WARNING"
-  hazardStatements       String  @default("[]")
-  precautionaryStatements String @default("[]")
-
-  // Physical properties
-  flashPoint    String?
-  boilingPoint  String?
-  physicalState String?   // SOLID | LIQUID | GAS | AEROSOL
-  colour        String?
-  odour         String?
-
-  // Regulatory
-  isHazardous      Boolean @default(true)
-  unNumber         String?
-  mhiThreshold     Float?   // Major Hazard Installation threshold (kg/L)
+model ChemicalItem {
+  id                String   @id @default(cuid())
+  referenceNo       String   @unique
+  productName       String
+  tradeName         String?
+  manufacturer      String?
+  supplier          String?
+  physicalState     String?
+  colour            String?
+  odour             String?
+  flashPoint        String?
+  boilingPoint      String?
+  unNumber          String?
+  mhiThreshold      Float?
   mhiQuantityOnSite Float?
+  isHazardous       Boolean  @default(true)
+  emergencyContact  String?
+  poisonCentre      String?
+  notes             String?
+  addedById         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
 
-  // PubChem reference (for auto-population)
-  pubchemCid    Int?
-
-  // Emergency
-  emergencyContact String?
-  poisonCentre     String?
-
-  notes       String?
-  addedById   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-
-  addedBy      User              @relation("ChemicalAddedBy", fields: [addedById], references: [id])
+  addedBy      User                    @relation("ChemicalItemAddedBy", fields: [addedById], references: [id])
+  components   ChemicalItemComponent[]
   sdsDocuments SdsDocument[]
   locations    ChemicalLocation[]
 }
 
-model SdsDocument {
-  id            String    @id @default(cuid())
-  chemicalId    String
-  version       String    @default("1.0")
-  language      String    @default("English")
-  effectiveDate DateTime?
-  expiryDate    DateTime?
-  filename      String
-  originalName  String
-  fileSize      Int
-  mimeType      String    @default("application/pdf")
-  isActive      Boolean   @default(true)
-  notes         String?
-  uploadedById  String
-  createdAt     DateTime  @default(now())
-  deletedAt     DateTime?
+model ChemicalLibrary {
+  id                      String   @id @default(cuid())
+  name                    String
+  casNumber               String?  @unique
+  formula                 String?
+  ghsPictograms           String   @default("[]")
+  hazardClass             String?
+  signalWord              String?
+  hazardStatements        String   @default("[]")
+  precautionaryStatements String   @default("[]")
+  pubchemCid              Int?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
-  chemical   Chemical @relation(fields: [chemicalId], references: [id])
-  uploadedBy User     @relation("SdsUploadedBy", fields: [uploadedById], references: [id])
+  usedInItems ChemicalItemComponent[]
+}
+
+model ChemicalItemComponent {
+  id             String   @id @default(cuid())
+  chemicalItemId String
+  libraryId      String
+  concentration  String?
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  chemicalItem ChemicalItem    @relation(fields: [chemicalItemId], references: [id])
+  library      ChemicalLibrary @relation(fields: [libraryId], references: [id])
+
+  @@unique([chemicalItemId, libraryId])
+}
+
+model SdsDocument {
+  id             String    @id @default(cuid())
+  chemicalItemId String
+  version        String    @default("1.0")
+  language       String    @default("English")
+  effectiveDate  DateTime?
+  expiryDate     DateTime?
+  filename       String
+  originalName   String
+  fileSize       Int
+  mimeType       String    @default("application/pdf")
+  isActive       Boolean   @default(true)
+  notes          String?
+  uploadedById   String
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+
+  chemicalItem ChemicalItem @relation(fields: [chemicalItemId], references: [id])
+  uploadedBy   User         @relation("SdsUploadedBy", fields: [uploadedById], references: [id])
 }
 
 model ChemicalLocation {
   id                String   @id @default(cuid())
-  chemicalId        String
+  chemicalItemId    String
   locationName      String
   buildingArea      String?
   quantity          Float?
@@ -1135,5 +1148,5 @@ model ChemicalLocation {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  chemical Chemical @relation(fields: [chemicalId], references: [id])
+  chemicalItem ChemicalItem @relation(fields: [chemicalItemId], references: [id])
 }

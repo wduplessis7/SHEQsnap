@@ -47,6 +47,7 @@ export default function ChemicalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: session } = useSession();
   const user = session?.user as any;
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SAFETY_OFFICER";
 
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -54,10 +55,6 @@ export default function ChemicalDetailPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState<any>({});
-  const [ghsPictograms, setGhsPictograms] = useState<string[]>([]);
-  const [ghsInput, setGhsInput] = useState("");
-  const [pubchemLoading, setPubchemLoading] = useState(false);
-  const [pubchemMessage, setPubchemMessage] = useState("");
 
   const [sdsUploading, setSdsUploading] = useState(false);
   const [sdsError, setSdsError] = useState("");
@@ -72,30 +69,40 @@ export default function ChemicalDetailPage() {
   const [locForm, setLocForm] = useState({ locationName: "", buildingArea: "", quantity: "", unit: "kg", maxQuantity: "", storageConditions: "" });
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
+  const [compAddMode, setCompAddMode] = useState<"search" | "pubchem">("search");
+  const [libSearch, setLibSearch] = useState("");
+  const [libResults, setLibResults] = useState<any[]>([]);
+  const [libSearching, setLibSearching] = useState(false);
+  const [selectedLib, setSelectedLib] = useState<any>(null);
+  const [compConcentration, setCompConcentration] = useState("");
+  const [compNotes, setCompNotes] = useState("");
+  const [compSaving, setCompSaving] = useState(false);
+  const [compError, setCompError] = useState("");
+
+  const [pubchemCas, setPubchemCas] = useState("");
+  const [pubchemLoading, setPubchemLoading] = useState(false);
+  const [pubchemMessage, setPubchemMessage] = useState("");
+  const [pubchemData, setPubchemData] = useState<any>(null);
+  const [newChemName, setNewChemName] = useState("");
+
+  const libSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     fetch(`/api/chemicals/${id}`)
       .then((r) => r.json())
       .then((data) => {
         setItem(data);
-        const pics = safeParseJson(data.ghsPictograms);
-        setGhsPictograms(pics);
         setForm({
-          name: data.name || "",
+          productName: data.productName || "",
           tradeName: data.tradeName || "",
-          casNumber: data.casNumber || "",
-          formula: data.formula || "",
           manufacturer: data.manufacturer || "",
           supplier: data.supplier || "",
           physicalState: data.physicalState || "",
           colour: data.colour || "",
           odour: data.odour || "",
-          isHazardous: data.isHazardous ?? true,
-          hazardClass: data.hazardClass || "",
-          signalWord: data.signalWord || "",
-          hazardStatements: safeParseJson(data.hazardStatements).join("\n"),
-          precautionaryStatements: safeParseJson(data.precautionaryStatements).join("\n"),
           flashPoint: data.flashPoint || "",
           boilingPoint: data.boilingPoint || "",
+          isHazardous: data.isHazardous ?? true,
           unNumber: data.unNumber || "",
           mhiThreshold: data.mhiThreshold != null ? String(data.mhiThreshold) : "",
           mhiQuantityOnSite: data.mhiQuantityOnSite != null ? String(data.mhiQuantityOnSite) : "",
@@ -112,59 +119,18 @@ export default function ChemicalDetailPage() {
     setForm((prev: any) => ({ ...prev, [key]: value }));
   }
 
-  function addGhsPictogram() {
-    const val = ghsInput.trim().toUpperCase();
-    if (val && !ghsPictograms.includes(val)) setGhsPictograms((prev) => [...prev, val]);
-    setGhsInput("");
-  }
-
-  async function handlePubchemLookup() {
-    const cas = form.casNumber?.trim();
-    if (!cas) return;
-    setPubchemLoading(true);
-    setPubchemMessage("");
-    try {
-      const res = await fetch(`/api/chemicals/pubchem?cas=${encodeURIComponent(cas)}`);
-      if (!res.ok) { setPubchemMessage("Not found in PubChem"); return; }
-      const data = await res.json();
-      setForm((prev: any) => ({
-        ...prev,
-        formula: data.formula || prev.formula,
-        hazardClass: data.hazardClass || prev.hazardClass,
-        signalWord: data.signalWord || prev.signalWord,
-        hazardStatements: Array.isArray(data.hazardStatements) ? data.hazardStatements.join("\n") : prev.hazardStatements,
-        precautionaryStatements: Array.isArray(data.precautionaryStatements) ? data.precautionaryStatements.join("\n") : prev.precautionaryStatements,
-      }));
-      if (Array.isArray(data.ghsPictograms) && data.ghsPictograms.length > 0) setGhsPictograms(data.ghsPictograms);
-      setPubchemMessage("PubChem data loaded");
-    } catch {
-      setPubchemMessage("Not found in PubChem");
-    } finally {
-      setPubchemLoading(false);
-    }
-  }
-
   async function handleSave() {
     setSaving(true);
     setError("");
     try {
-      const hazardStatementsArr = form.hazardStatements.split("\n").map((s: string) => s.trim()).filter(Boolean);
-      const precautionaryStatementsArr = form.precautionaryStatements.split("\n").map((s: string) => s.trim()).filter(Boolean);
       const payload = {
         ...form,
-        ghsPictograms: JSON.stringify(ghsPictograms),
-        hazardStatements: JSON.stringify(hazardStatementsArr),
-        precautionaryStatements: JSON.stringify(precautionaryStatementsArr),
-        signalWord: form.signalWord || null,
-        physicalState: form.physicalState || null,
         tradeName: form.tradeName || null,
-        casNumber: form.casNumber || null,
-        formula: form.formula || null,
         manufacturer: form.manufacturer || null,
         supplier: form.supplier || null,
+        physicalState: form.physicalState || null,
         colour: form.colour || null,
         odour: form.odour || null,
-        hazardClass: form.hazardClass || null,
         flashPoint: form.flashPoint || null,
         boilingPoint: form.boilingPoint || null,
         unNumber: form.unNumber || null,
@@ -192,6 +158,130 @@ export default function ChemicalDetailPage() {
     }
   }
 
+  function handleLibSearchChange(val: string) {
+    setLibSearch(val);
+    setSelectedLib(null);
+    if (libSearchTimeout.current) clearTimeout(libSearchTimeout.current);
+    if (!val.trim()) { setLibResults([]); return; }
+    libSearchTimeout.current = setTimeout(async () => {
+      setLibSearching(true);
+      try {
+        const res = await fetch(`/api/chemicals/library?search=${encodeURIComponent(val.trim())}`);
+        if (res.ok) {
+          const data = await res.json();
+          setLibResults(Array.isArray(data) ? data : (data.items ?? []));
+        }
+      } finally {
+        setLibSearching(false);
+      }
+    }, 300);
+  }
+
+  async function handlePubchemLookup() {
+    if (!pubchemCas.trim()) return;
+    setPubchemLoading(true);
+    setPubchemMessage("");
+    setPubchemData(null);
+    setNewChemName("");
+    try {
+      const res = await fetch(`/api/chemicals/pubchem?cas=${encodeURIComponent(pubchemCas.trim())}`);
+      if (!res.ok) { setPubchemMessage("Not found — fill in manually"); return; }
+      const data = await res.json();
+      setPubchemData(data);
+      setNewChemName(data.name || "");
+      setPubchemMessage("PubChem data loaded");
+    } catch {
+      setPubchemMessage("Not found — fill in manually");
+    } finally {
+      setPubchemLoading(false);
+    }
+  }
+
+  async function handleAddComponentSearch(e: React.FormEvent) {
+    e.preventDefault();
+    setCompError("");
+    if (!selectedLib) { setCompError("Please select a chemical from the library."); return; }
+    setCompSaving(true);
+    try {
+      const res = await fetch(`/api/chemicals/${id}/components`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          libraryId: selectedLib.id,
+          concentration: compConcentration || null,
+          notes: compNotes || null,
+        }),
+      });
+      if (res.ok) {
+        const newComp = await res.json();
+        setItem((prev: any) => ({ ...prev, components: [...(prev.components || []), newComp] }));
+        setSelectedLib(null);
+        setLibSearch("");
+        setLibResults([]);
+        setCompConcentration("");
+        setCompNotes("");
+      } else {
+        const err = await res.json();
+        setCompError(err.error || "Failed to add component.");
+      }
+    } finally {
+      setCompSaving(false);
+    }
+  }
+
+  async function handleAddComponentNew(e: React.FormEvent) {
+    e.preventDefault();
+    setCompError("");
+    const name = newChemName.trim() || (pubchemData?.name ?? "");
+    if (!name) { setCompError("Chemical name is required."); return; }
+    setCompSaving(true);
+    try {
+      const payload: any = {
+        concentration: compConcentration || null,
+        notes: compNotes || null,
+        name,
+        casNumber: pubchemCas || null,
+      };
+      if (pubchemData) {
+        payload.formula = pubchemData.formula || null;
+        payload.ghsPictograms = pubchemData.ghsPictograms ? JSON.stringify(pubchemData.ghsPictograms) : null;
+        payload.hazardStatements = pubchemData.hazardStatements ? JSON.stringify(pubchemData.hazardStatements) : null;
+        payload.precautionaryStatements = pubchemData.precautionaryStatements ? JSON.stringify(pubchemData.precautionaryStatements) : null;
+        payload.signalWord = pubchemData.signalWord || null;
+        payload.hazardClass = pubchemData.hazardClass || null;
+        payload.pubchemCid = pubchemData.pubchemCid || null;
+      }
+      const res = await fetch(`/api/chemicals/${id}/components`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const newComp = await res.json();
+        setItem((prev: any) => ({ ...prev, components: [...(prev.components || []), newComp] }));
+        setPubchemCas("");
+        setPubchemData(null);
+        setPubchemMessage("");
+        setNewChemName("");
+        setCompConcentration("");
+        setCompNotes("");
+      } else {
+        const err = await res.json();
+        setCompError(err.error || "Failed to add component.");
+      }
+    } finally {
+      setCompSaving(false);
+    }
+  }
+
+  async function handleRemoveComponent(compId: string) {
+    if (!confirm("Remove this component?")) return;
+    const res = await fetch(`/api/chemicals/${id}/components/${compId}`, { method: "DELETE" });
+    if (res.ok) {
+      setItem((prev: any) => ({ ...prev, components: prev.components.filter((c: any) => c.id !== compId) }));
+    }
+  }
+
   async function handleSdsUpload(e: React.FormEvent) {
     e.preventDefault();
     setSdsError("");
@@ -200,7 +290,7 @@ export default function ChemicalDetailPage() {
     try {
       const fd = new FormData();
       fd.append("file", sdsFile);
-      fd.append("chemicalId", id);
+      fd.append("chemicalItemId", id);
       const uploadRes = await fetch("/api/attachments", { method: "POST", body: fd });
       if (!uploadRes.ok) { setSdsError("File upload failed."); return; }
       const uploadData = await uploadRes.json();
@@ -211,6 +301,7 @@ export default function ChemicalDetailPage() {
           filename: uploadData.filename,
           originalName: sdsFile.name,
           fileSize: sdsFile.size,
+          mimeType: sdsFile.type,
           version: sdsForm.version || "1.0",
           language: sdsForm.language || "English",
           effectiveDate: sdsForm.effectiveDate || null,
@@ -293,10 +384,9 @@ export default function ChemicalDetailPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   if (!item || item.error) return <div className="text-center py-8 text-gray-500">Chemical not found.</div>;
 
-  const ghsPics = safeParseJson(item.ghsPictograms);
-  const hazardStatements = safeParseJson(item.hazardStatements);
-  const precautionaryStatements = safeParseJson(item.precautionaryStatements);
-  const isAdmin = user?.role === "ADMIN";
+  const componentCount = item.components?.length ?? 0;
+  const sdsCount = item.sdsDocuments?.length ?? 0;
+  const locCount = item.locations?.length ?? 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -308,7 +398,7 @@ export default function ChemicalDetailPage() {
               <span className="font-mono text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                 {item.referenceNo}
               </span>
-              <h1 className="text-2xl font-bold text-gray-900">{item.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{item.productName}</h1>
               {item.tradeName && <span className="text-gray-500 text-base">({item.tradeName})</span>}
             </div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -316,12 +406,6 @@ export default function ChemicalDetailPage() {
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Hazardous</span>
               ) : (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Non-Hazardous</span>
-              )}
-              {item.signalWord === "DANGER" && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">DANGER</span>
-              )}
-              {item.signalWord === "WARNING" && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">WARNING</span>
               )}
             </div>
           </div>
@@ -332,7 +416,7 @@ export default function ChemicalDetailPage() {
           )}
           {editing && (
             <>
-              <Button variant="outline" onClick={() => { setEditing(false); setError(""); setPubchemMessage(""); }}>
+              <Button variant="outline" onClick={() => { setEditing(false); setError(""); }}>
                 <X className="h-4 w-4" />Cancel
               </Button>
               <Button onClick={handleSave} disabled={saving}>
@@ -353,41 +437,34 @@ export default function ChemicalDetailPage() {
       <Tabs defaultValue="info">
         <TabsList>
           <TabsTrigger value="info">Info</TabsTrigger>
-          <TabsTrigger value="sds">SDS Library ({item.sdsDocuments?.length || 0})</TabsTrigger>
-          <TabsTrigger value="locations">Locations ({item.locations?.length || 0})</TabsTrigger>
+          <TabsTrigger value="components">Components ({componentCount})</TabsTrigger>
+          <TabsTrigger value="sds">SDS Library ({sdsCount})</TabsTrigger>
+          <TabsTrigger value="locations">Locations ({locCount})</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
 
+        {/* ── INFO TAB ── */}
         <TabsContent value="info" className="space-y-4 mt-4">
           {editing ? (
             <div className="space-y-4">
               <Card>
-                <CardHeader><CardTitle className="text-base">Basic Information</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">Product Information</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <Label>Chemical Name *</Label>
-                    <Input value={form.name} onChange={(e) => setField("name", e.target.value)} required className="mt-1" />
+                    <Label>Product Name *</Label>
+                    <Input value={form.productName} onChange={(e) => setField("productName", e.target.value)} required className="mt-1" />
                   </div>
                   <div>
                     <Label>Trade Name</Label>
                     <Input value={form.tradeName} onChange={(e) => setField("tradeName", e.target.value)} className="mt-1" />
                   </div>
                   <div>
-                    <Label>CAS Number</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input value={form.casNumber} onChange={(e) => setField("casNumber", e.target.value)} className="flex-1" />
-                      <Button type="button" variant="outline" size="sm" onClick={handlePubchemLookup} disabled={pubchemLoading || !form.casNumber?.trim()} className="whitespace-nowrap">
-                        {pubchemLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                        PubChem
-                      </Button>
-                    </div>
-                    {pubchemMessage && (
-                      <p className={`text-xs mt-1 ${pubchemMessage.includes("loaded") ? "text-green-600" : "text-amber-600"}`}>{pubchemMessage}</p>
-                    )}
+                    <Label>Manufacturer</Label>
+                    <Input value={form.manufacturer} onChange={(e) => setField("manufacturer", e.target.value)} className="mt-1" />
                   </div>
                   <div>
-                    <Label>Formula</Label>
-                    <Input value={form.formula} onChange={(e) => setField("formula", e.target.value)} className="mt-1" />
+                    <Label>Supplier</Label>
+                    <Input value={form.supplier} onChange={(e) => setField("supplier", e.target.value)} className="mt-1" />
                   </div>
                   <div>
                     <Label>Physical State</Label>
@@ -403,14 +480,6 @@ export default function ChemicalDetailPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Manufacturer</Label>
-                    <Input value={form.manufacturer} onChange={(e) => setField("manufacturer", e.target.value)} className="mt-1" />
-                  </div>
-                  <div>
-                    <Label>Supplier</Label>
-                    <Input value={form.supplier} onChange={(e) => setField("supplier", e.target.value)} className="mt-1" />
-                  </div>
-                  <div>
                     <Label>Colour</Label>
                     <Input value={form.colour} onChange={(e) => setField("colour", e.target.value)} className="mt-1" />
                   </div>
@@ -418,67 +487,33 @@ export default function ChemicalDetailPage() {
                     <Label>Odour</Label>
                     <Input value={form.odour} onChange={(e) => setField("odour", e.target.value)} className="mt-1" />
                   </div>
-                  <div className="md:col-span-2 flex items-center gap-3">
+                  <div>
+                    <Label>Flash Point</Label>
+                    <Input value={form.flashPoint} onChange={(e) => setField("flashPoint", e.target.value)} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Boiling Point</Label>
+                    <Input value={form.boilingPoint} onChange={(e) => setField("boilingPoint", e.target.value)} className="mt-1" />
+                  </div>
+                  <div className="md:col-span-2 flex items-center gap-3 pt-1">
                     <input type="checkbox" id="isHazardousEdit" checked={form.isHazardous} onChange={(e) => setField("isHazardous", e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600" />
-                    <label htmlFor="isHazardousEdit" className="text-sm font-medium text-gray-700 cursor-pointer">This chemical is hazardous</label>
+                    <label htmlFor="isHazardousEdit" className="text-sm font-medium text-gray-700 cursor-pointer">This product is hazardous</label>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-base">GHS Classification</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">Regulatory</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Hazard Class</Label>
-                    <Input value={form.hazardClass} onChange={(e) => setField("hazardClass", e.target.value)} className="mt-1" />
-                  </div>
-                  <div>
-                    <Label>Signal Word</Label>
-                    <Select value={form.signalWord || "none"} onValueChange={(v) => setField("signalWord", v === "none" ? "" : v)}>
-                      <SelectTrigger className="mt-1"><SelectValue placeholder="None" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="DANGER">DANGER</SelectItem>
-                        <SelectItem value="WARNING">WARNING</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>GHS Pictograms</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input value={ghsInput} onChange={(e) => setGhsInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addGhsPictogram(); } }} placeholder="e.g. GHS01" className="flex-1" />
-                      <Button type="button" variant="outline" size="sm" onClick={addGhsPictogram}><Plus className="h-4 w-4" />Add</Button>
-                    </div>
-                    {ghsPictograms.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {ghsPictograms.map((p) => (
-                          <span key={p} className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded-full">
-                            {p}
-                            <button type="button" onClick={() => setGhsPictograms((prev) => prev.filter((x) => x !== p))} className="hover:text-orange-900"><X className="h-3 w-3" /></button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Hazard Statements <span className="text-gray-400 font-normal">(one per line)</span></Label>
-                    <Textarea value={form.hazardStatements} onChange={(e) => setField("hazardStatements", e.target.value)} rows={4} className="mt-1" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Precautionary Statements <span className="text-gray-400 font-normal">(one per line)</span></Label>
-                    <Textarea value={form.precautionaryStatements} onChange={(e) => setField("precautionaryStatements", e.target.value)} rows={4} className="mt-1" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle className="text-base">Physical Properties &amp; Regulatory</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><Label>Flash Point</Label><Input value={form.flashPoint} onChange={(e) => setField("flashPoint", e.target.value)} className="mt-1" /></div>
-                  <div><Label>Boiling Point</Label><Input value={form.boilingPoint} onChange={(e) => setField("boilingPoint", e.target.value)} className="mt-1" /></div>
                   <div><Label>UN Number</Label><Input value={form.unNumber} onChange={(e) => setField("unNumber", e.target.value)} className="mt-1" /></div>
                   <div><Label>MHI Threshold (t)</Label><Input type="number" step="any" value={form.mhiThreshold} onChange={(e) => setField("mhiThreshold", e.target.value)} className="mt-1" /></div>
                   <div><Label>MHI Quantity on Site (t)</Label><Input type="number" step="any" value={form.mhiQuantityOnSite} onChange={(e) => setField("mhiQuantityOnSite", e.target.value)} className="mt-1" /></div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle className="text-base">Emergency</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><Label>Emergency Contact</Label><Input value={form.emergencyContact} onChange={(e) => setField("emergencyContact", e.target.value)} className="mt-1" /></div>
                   <div><Label>Poison Centre</Label><Input value={form.poisonCentre} onChange={(e) => setField("poisonCentre", e.target.value)} className="mt-1" /></div>
                   <div className="md:col-span-2"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setField("notes", e.target.value)} rows={3} className="mt-1" /></div>
@@ -489,76 +524,27 @@ export default function ChemicalDetailPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2 space-y-4">
                 <Card>
-                  <CardHeader><CardTitle className="text-base">Basic Information</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-base">Product Information</CardTitle></CardHeader>
                   <CardContent>
                     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Chemical Name</dt><dd className="mt-1 text-sm text-gray-900 font-medium">{item.name}</dd></div>
+                      <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Product Name</dt><dd className="mt-1 text-sm text-gray-900 font-medium">{item.productName}</dd></div>
                       {item.tradeName && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Trade Name</dt><dd className="mt-1 text-sm text-gray-900">{item.tradeName}</dd></div>}
-                      {item.casNumber && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">CAS Number</dt><dd className="mt-1 text-sm font-mono text-gray-900">{item.casNumber}</dd></div>}
-                      {item.formula && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Formula</dt><dd className="mt-1 text-sm font-mono text-gray-900">{item.formula}</dd></div>}
-                      {item.physicalState && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Physical State</dt><dd className="mt-1 text-sm text-gray-900">{item.physicalState}</dd></div>}
                       {item.manufacturer && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Manufacturer</dt><dd className="mt-1 text-sm text-gray-900">{item.manufacturer}</dd></div>}
                       {item.supplier && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Supplier</dt><dd className="mt-1 text-sm text-gray-900">{item.supplier}</dd></div>}
+                      {item.physicalState && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Physical State</dt><dd className="mt-1 text-sm text-gray-900">{item.physicalState}</dd></div>}
                       {item.colour && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Colour</dt><dd className="mt-1 text-sm text-gray-900">{item.colour}</dd></div>}
                       {item.odour && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Odour</dt><dd className="mt-1 text-sm text-gray-900">{item.odour}</dd></div>}
+                      {item.flashPoint && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Flash Point</dt><dd className="mt-1 text-sm text-gray-900">{item.flashPoint}</dd></div>}
+                      {item.boilingPoint && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Boiling Point</dt><dd className="mt-1 text-sm text-gray-900">{item.boilingPoint}</dd></div>}
                     </dl>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader><CardTitle className="text-base">GHS Classification</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    {item.hazardClass && (
-                      <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Hazard Class</dt><dd className="mt-1 text-sm text-gray-900">{item.hazardClass}</dd></div>
-                    )}
-                    {ghsPics.length > 0 && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">GHS Pictograms</p>
-                        <div className="flex flex-wrap gap-2">
-                          {ghsPics.map((p) => (
-                            <span key={p} className="inline-flex items-center bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-1 rounded-full">
-                              {p}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {hazardStatements.length > 0 && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Hazard Statements</p>
-                        <ol className="space-y-1">
-                          {hazardStatements.map((s, i) => (
-                            <li key={i} className="text-sm text-gray-900 flex gap-2">
-                              <span className="text-gray-400 min-w-[1.5rem]">{i + 1}.</span>
-                              {s}
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-                    {precautionaryStatements.length > 0 && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Precautionary Statements</p>
-                        <ol className="space-y-1">
-                          {precautionaryStatements.map((s, i) => (
-                            <li key={i} className="text-sm text-gray-900 flex gap-2">
-                              <span className="text-gray-400 min-w-[1.5rem]">{i + 1}.</span>
-                              {s}
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {(item.flashPoint || item.boilingPoint || item.unNumber || item.mhiThreshold != null || item.mhiQuantityOnSite != null) && (
+                {(item.unNumber || item.mhiThreshold != null || item.mhiQuantityOnSite != null) && (
                   <Card>
-                    <CardHeader><CardTitle className="text-base">Physical Properties &amp; Regulatory</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-base">Regulatory</CardTitle></CardHeader>
                     <CardContent>
                       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {item.flashPoint && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Flash Point</dt><dd className="mt-1 text-sm text-gray-900">{item.flashPoint}</dd></div>}
-                        {item.boilingPoint && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Boiling Point</dt><dd className="mt-1 text-sm text-gray-900">{item.boilingPoint}</dd></div>}
                         {item.unNumber && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">UN Number</dt><dd className="mt-1 text-sm font-mono text-gray-900">{item.unNumber}</dd></div>}
                         {item.mhiThreshold != null && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">MHI Threshold</dt><dd className="mt-1 text-sm text-gray-900">{item.mhiThreshold} t</dd></div>}
                         {item.mhiQuantityOnSite != null && <div><dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">MHI Qty on Site</dt><dd className="mt-1 text-sm text-gray-900">{item.mhiQuantityOnSite} t</dd></div>}
@@ -614,6 +600,189 @@ export default function ChemicalDetailPage() {
           )}
         </TabsContent>
 
+        {/* ── COMPONENTS TAB ── */}
+        <TabsContent value="components" className="space-y-4 mt-4">
+          {(item.components || []).length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-gray-400">
+                No components linked yet
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {(item.components || []).map((comp: any) => {
+                const lib = comp.library ?? comp;
+                const pics = safeParseJson(lib.ghsPictograms);
+                const hazards = safeParseJson(lib.hazardStatements);
+                return (
+                  <CompComponent
+                    key={comp.id}
+                    comp={comp}
+                    lib={lib}
+                    pics={pics}
+                    hazards={hazards}
+                    onRemove={() => handleRemoveComponent(comp.id)}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Add Component</CardTitle>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant={compAddMode === "search" ? "default" : "outline"}
+                    className="text-xs h-7"
+                    onClick={() => setCompAddMode("search")}
+                  >
+                    Search Library
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={compAddMode === "pubchem" ? "default" : "outline"}
+                    className="text-xs h-7"
+                    onClick={() => setCompAddMode("pubchem")}
+                  >
+                    Add New / PubChem
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {compAddMode === "search" ? (
+                <form onSubmit={handleAddComponentSearch} className="space-y-4">
+                  <div>
+                    <Label>Search Chemical Library</Label>
+                    <div className="relative mt-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        value={libSearch}
+                        onChange={(e) => handleLibSearchChange(e.target.value)}
+                        placeholder="Type name or CAS number..."
+                        className="pl-9"
+                      />
+                    </div>
+                    {libSearching && <p className="text-xs text-gray-400 mt-1">Searching...</p>}
+                    {!libSearching && libResults.length > 0 && !selectedLib && (
+                      <div className="mt-1 border rounded-lg shadow-sm overflow-hidden">
+                        {libResults.map((r: any) => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b last:border-0 text-sm"
+                            onClick={() => { setSelectedLib(r); setLibSearch(r.name); setLibResults([]); }}
+                          >
+                            <span className="font-medium text-gray-900">{r.name}</span>
+                            {r.casNumber && <span className="ml-2 text-xs text-gray-500 font-mono">{r.casNumber}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedLib && (
+                      <div className="mt-2 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                        <span className="text-sm font-medium text-blue-900">{selectedLib.name}</span>
+                        {selectedLib.casNumber && <span className="text-xs text-blue-600 font-mono">{selectedLib.casNumber}</span>}
+                        <button type="button" onClick={() => { setSelectedLib(null); setLibSearch(""); }} className="ml-auto text-blue-400 hover:text-blue-600">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Concentration <span className="text-gray-400 font-normal">(optional)</span></Label>
+                      <Input value={compConcentration} onChange={(e) => setCompConcentration(e.target.value)} placeholder="e.g. 60–80%" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label>Notes <span className="text-gray-400 font-normal">(optional)</span></Label>
+                      <Input value={compNotes} onChange={(e) => setCompNotes(e.target.value)} className="mt-1" />
+                    </div>
+                  </div>
+                  {compError && <p className="text-sm text-red-600">{compError}</p>}
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={compSaving || !selectedLib}>
+                      {compSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      {compSaving ? "Adding..." : "Add Component"}
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleAddComponentNew} className="space-y-4">
+                  <div>
+                    <Label>CAS Number</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        value={pubchemCas}
+                        onChange={(e) => setPubchemCas(e.target.value)}
+                        placeholder="e.g. 64742-89-8"
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePubchemLookup}
+                        disabled={pubchemLoading || !pubchemCas.trim()}
+                        className="whitespace-nowrap"
+                      >
+                        {pubchemLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        {pubchemLoading ? "Looking up..." : "Lookup PubChem"}
+                      </Button>
+                    </div>
+                    {pubchemMessage && (
+                      <p className={cn("text-xs mt-1", pubchemMessage.includes("loaded") ? "text-green-600" : "text-amber-600")}>
+                        {pubchemMessage}
+                      </p>
+                    )}
+                  </div>
+
+                  {pubchemData && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-1 text-sm">
+                      {pubchemData.name && <p><span className="font-medium">Name:</span> {pubchemData.name}</p>}
+                      {pubchemData.formula && <p><span className="font-medium">Formula:</span> {pubchemData.formula}</p>}
+                      {pubchemData.signalWord && <p><span className="font-medium">Signal Word:</span> {pubchemData.signalWord}</p>}
+                      {pubchemData.hazardClass && <p><span className="font-medium">Hazard Class:</span> {pubchemData.hazardClass}</p>}
+                    </div>
+                  )}
+
+                  <div>
+                    <Label>Chemical Name *</Label>
+                    <Input
+                      value={newChemName}
+                      onChange={(e) => setNewChemName(e.target.value)}
+                      placeholder="Enter chemical name (auto-filled from PubChem if found)"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Concentration <span className="text-gray-400 font-normal">(optional)</span></Label>
+                      <Input value={compConcentration} onChange={(e) => setCompConcentration(e.target.value)} placeholder="e.g. 60–80%" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label>Notes <span className="text-gray-400 font-normal">(optional)</span></Label>
+                      <Input value={compNotes} onChange={(e) => setCompNotes(e.target.value)} className="mt-1" />
+                    </div>
+                  </div>
+                  {compError && <p className="text-sm text-red-600">{compError}</p>}
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={compSaving}>
+                      {compSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      {compSaving ? "Adding..." : "Add Component"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── SDS LIBRARY TAB ── */}
         <TabsContent value="sds" className="space-y-4 mt-4">
           <div className="flex justify-end">
             <Button variant="outline" onClick={() => setShowSdsForm((v) => !v)}>
@@ -679,13 +848,12 @@ export default function ChemicalDetailPage() {
                     <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Effective</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Expiry</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                    <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Uploaded</th>
                     {isAdmin && <th className="px-4 py-3"></th>}
                   </tr>
                 </thead>
                 <tbody>
                   {(item.sdsDocuments || []).length === 0 ? (
-                    <tr><td colSpan={8} className="text-center py-6 text-gray-400">No SDS documents uploaded</td></tr>
+                    <tr><td colSpan={7} className="text-center py-6 text-gray-400">No SDS documents uploaded</td></tr>
                   ) : (
                     [...(item.sdsDocuments || [])].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((sds: any) => {
                       const expiring = isWithin90Days(sds.expiryDate) && !isPast(sds.expiryDate);
@@ -705,7 +873,11 @@ export default function ChemicalDetailPage() {
                               <span className={cn("text-sm", expired ? "text-red-600 font-medium" : expiring ? "text-amber-600 font-medium" : "text-gray-600")}>
                                 {formatDate(sds.expiryDate)}
                                 {expired && <span className="ml-1 text-xs">(Expired)</span>}
-                                {expiring && !expired && <span className="ml-1 text-xs flex items-center gap-0.5 inline-flex"><AlertTriangle className="h-3 w-3" />Soon</span>}
+                                {expiring && !expired && (
+                                  <span className="ml-1 text-xs inline-flex items-center gap-0.5">
+                                    <AlertTriangle className="h-3 w-3" />Soon
+                                  </span>
+                                )}
                               </span>
                             ) : "—"}
                           </td>
@@ -716,7 +888,6 @@ export default function ChemicalDetailPage() {
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Inactive</span>
                             )}
                           </td>
-                          <td className="hidden sm:table-cell px-4 py-3 text-gray-500 text-xs">{formatDate(sds.createdAt)}</td>
                           {isAdmin && (
                             <td className="px-4 py-3">
                               <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 h-7 w-7" onClick={() => handleSdsDelete(sds.id)}>
@@ -734,6 +905,7 @@ export default function ChemicalDetailPage() {
           </Card>
         </TabsContent>
 
+        {/* ── LOCATIONS TAB ── */}
         <TabsContent value="locations" className="space-y-4 mt-4">
           <div className="flex justify-end">
             <Button variant="outline" onClick={() => setShowLocForm((v) => !v)}>
@@ -791,7 +963,7 @@ export default function ChemicalDetailPage() {
                     <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Building / Area</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Quantity</th>
                     <th className="hidden lg:table-cell text-left px-4 py-3 font-medium text-gray-600">Storage Conditions</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">QR / Emergency</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600">Emergency URL</th>
                     {isAdmin && <th className="px-4 py-3"></th>}
                   </tr>
                 </thead>
@@ -819,7 +991,7 @@ export default function ChemicalDetailPage() {
                               onClick={() => copyEmergencyUrl(loc.qrToken)}
                             >
                               {copiedToken === loc.qrToken ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                              {copiedToken === loc.qrToken ? "Copied!" : "Emergency URL"}
+                              {copiedToken === loc.qrToken ? "Copied!" : "Copy Emergency URL"}
                             </Button>
                           )}
                         </td>
@@ -839,6 +1011,7 @@ export default function ChemicalDetailPage() {
           </Card>
         </TabsContent>
 
+        {/* ── AUDIT LOG TAB ── */}
         <TabsContent value="audit" className="mt-4">
           <Card>
             <div className="overflow-x-auto">
@@ -846,8 +1019,8 @@ export default function ChemicalDetailPage() {
                 <thead className="border-b bg-gray-50">
                   <tr>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Action</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Changed By</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600">Action</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Changes</th>
                   </tr>
                 </thead>
@@ -858,10 +1031,10 @@ export default function ChemicalDetailPage() {
                     (item.auditLogs || []).map((log: any) => (
                       <tr key={log.id} className="border-b last:border-0 hover:bg-gray-50 align-top">
                         <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{formatDateTime(log.timestamp)}</td>
+                        <td className="px-4 py-3 text-gray-700">{log.changedBy?.name || "System"}</td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">{log.action}</span>
                         </td>
-                        <td className="px-4 py-3 text-gray-700">{log.changedBy?.name || "System"}</td>
                         <td className="px-4 py-3 text-gray-500 max-w-sm">
                           {log.changes ? (
                             <pre className="text-xs bg-gray-50 rounded p-2 overflow-x-auto whitespace-pre-wrap break-words">
@@ -881,5 +1054,66 @@ export default function ChemicalDetailPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function CompComponent({ comp, lib, pics, hazards, onRemove }: {
+  comp: any;
+  lib: any;
+  pics: string[];
+  hazards: string[];
+  onRemove: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const visibleHazards = expanded ? hazards : hazards.slice(0, 2);
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-gray-900">{lib.name}</span>
+              {lib.casNumber && (
+                <span className="text-xs text-gray-500 font-mono bg-gray-100 px-1.5 py-0.5 rounded">{lib.casNumber}</span>
+              )}
+              {comp.concentration && (
+                <span className="text-xs text-gray-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">{comp.concentration}</span>
+              )}
+              {lib.signalWord === "DANGER" && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700">DANGER</span>
+              )}
+              {lib.signalWord === "WARNING" && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-orange-100 text-orange-700">WARNING</span>
+              )}
+            </div>
+            {pics.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {pics.map((p) => (
+                  <span key={p} className="inline-flex items-center bg-orange-100 text-orange-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                    {p}
+                  </span>
+                ))}
+              </div>
+            )}
+            {hazards.length > 0 && (
+              <div className="mt-2 space-y-0.5">
+                {visibleHazards.map((s, i) => (
+                  <p key={i} className="text-xs text-gray-600">{i + 1}. {s}</p>
+                ))}
+                {hazards.length > 2 && (
+                  <button type="button" onClick={() => setExpanded((v) => !v)} className="text-xs text-blue-600 hover:underline mt-1">
+                    {expanded ? "Show less" : `Show ${hazards.length - 2} more`}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 h-7 w-7 flex-shrink-0" onClick={onRemove}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

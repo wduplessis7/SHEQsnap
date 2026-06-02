@@ -19,7 +19,7 @@ export async function PUT(
     where: { id: params.locId },
   });
 
-  if (!existing || existing.chemicalId !== params.id) {
+  if (!existing || existing.chemicalItemId !== params.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -36,7 +36,7 @@ export async function PUT(
     data: updateData,
   });
 
-  await writeAuditLog("Chemical", params.id, "LOCATION_UPDATE", user.id, {
+  await writeAuditLog("ChemicalItem", params.id, "LOCATION_UPDATE", user.id, {
     locationId: params.locId,
     updated: updateData,
   });
@@ -61,13 +61,13 @@ export async function DELETE(
     where: { id: params.locId },
   });
 
-  if (!existing || existing.chemicalId !== params.id) {
+  if (!existing || existing.chemicalItemId !== params.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   await (prisma as any).chemicalLocation.delete({ where: { id: params.locId } });
 
-  await writeAuditLog("Chemical", params.id, "LOCATION_DELETE", user.id, {
+  await writeAuditLog("ChemicalItem", params.id, "LOCATION_DELETE", user.id, {
     locationId: params.locId,
     locationName: existing.locationName,
   });

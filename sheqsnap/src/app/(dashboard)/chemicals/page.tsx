@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 export default function ChemicalsPage() {
   const searchParams = useSearchParams();
@@ -68,19 +67,15 @@ export default function ChemicalsPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Chemical Register</h1>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Chemical Register</h1>
           <p className="text-gray-500 mt-1">{total} record{total !== 1 ? "s" : ""}</p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/chemicals/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Add Chemical
-            </Button>
-          </Link>
-        </div>
+        <Link href="/chemicals/new">
+          <Button>
+            <Plus className="h-4 w-4" />
+            Add Chemical Product
+          </Button>
+        </Link>
       </div>
 
       <Card>
@@ -89,14 +84,14 @@ export default function ChemicalsPage() {
             <div className="relative flex-1 min-w-48">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search name, trade name, CAS..."
+                placeholder="Search product name, manufacturer..."
                 value={filters.search}
                 onChange={(e) => updateFilter("search", e.target.value)}
                 className="pl-9"
               />
             </div>
             <Select value={filters.isHazardous} onValueChange={(v) => updateFilter("isHazardous", v)}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="All Chemicals" /></SelectTrigger>
+              <SelectTrigger className="w-48"><SelectValue placeholder="All Chemicals" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Chemicals</SelectItem>
                 <SelectItem value="true">Hazardous Only</SelectItem>
@@ -114,10 +109,10 @@ export default function ChemicalsPage() {
             <thead className="border-b bg-gray-50">
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Reference</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">CAS Number</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Product Name</th>
+                <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Manufacturer</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Hazard</th>
-                <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Signal Word</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Components</th>
                 <th className="hidden lg:table-cell text-left px-4 py-3 font-medium text-gray-600">SDS Docs</th>
               </tr>
             </thead>
@@ -145,14 +140,14 @@ export default function ChemicalsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Link href={`/chemicals/${item.id}`} className="font-medium text-blue-600 hover:underline">
-                        {item.name}
+                        {item.productName}
                       </Link>
                       {item.tradeName && (
                         <p className="text-xs text-gray-500 mt-0.5">{item.tradeName}</p>
                       )}
                     </td>
-                    <td className="hidden md:table-cell px-4 py-3 text-gray-600 font-mono text-xs">
-                      {item.casNumber || "—"}
+                    <td className="hidden md:table-cell px-4 py-3 text-gray-600">
+                      {item.manufacturer || "—"}
                     </td>
                     <td className="px-4 py-3">
                       {item.isHazardous ? (
@@ -165,21 +160,11 @@ export default function ChemicalsPage() {
                         </span>
                       )}
                     </td>
-                    <td className="hidden sm:table-cell px-4 py-3">
-                      {item.signalWord === "DANGER" && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                          DANGER
-                        </span>
-                      )}
-                      {item.signalWord === "WARNING" && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-                          WARNING
-                        </span>
-                      )}
-                      {!item.signalWord && <span className="text-gray-400">—</span>}
+                    <td className="hidden sm:table-cell px-4 py-3 text-gray-600">
+                      {item._count?.components ?? item.components?.length ?? 0}
                     </td>
                     <td className="hidden lg:table-cell px-4 py-3 text-gray-600">
-                      {item._count?.sdsDocuments ?? item.sdsDocuments?.length ?? 0} SDS
+                      {item._count?.sdsDocuments ?? item.sdsDocuments?.length ?? 0}
                     </td>
                   </tr>
                 ))
