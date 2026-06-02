@@ -244,9 +244,9 @@ export default function ChemicalDetailPage() {
       };
       if (pubchemData) {
         payload.formula = pubchemData.formula || null;
-        payload.ghsPictograms = pubchemData.ghsPictograms ? JSON.stringify(pubchemData.ghsPictograms) : null;
-        payload.hazardStatements = pubchemData.hazardStatements ? JSON.stringify(pubchemData.hazardStatements) : null;
-        payload.precautionaryStatements = pubchemData.precautionaryStatements ? JSON.stringify(pubchemData.precautionaryStatements) : null;
+        payload.ghsPictograms = pubchemData.ghsPictograms || [];
+        payload.hazardStatements = pubchemData.hazardStatements || [];
+        payload.precautionaryStatements = pubchemData.precautionaryStatements || [];
         payload.signalWord = pubchemData.signalWord || null;
         payload.hazardClass = pubchemData.hazardClass || null;
         payload.pubchemCid = pubchemData.pubchemCid || null;

@@ -31,22 +31,35 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   let libraryId = body.libraryId;
 
   if (!libraryId) {
-    // Create new library entry
-    const lib = await (prisma as any).chemicalLibrary.create({
-      data: {
-        name: body.name,
-        casNumber: body.casNumber || null,
-        formula: body.formula || null,
-        ghsPictograms: JSON.stringify(body.ghsPictograms || []),
-        hazardClass: body.hazardClass || null,
-        signalWord: body.signalWord || null,
-        hazardStatements: JSON.stringify(body.hazardStatements || []),
-        precautionaryStatements: JSON.stringify(body.precautionaryStatements || []),
-        pubchemCid: body.pubchemCid || null,
-      },
-    });
-    libraryId = lib.id;
+    // If CAS number provided, check for existing library entry first
+    if (body.casNumber) {
+      const existing = await (prisma as any).chemicalLibrary.findUnique({ where: { casNumber: body.casNumber } });
+      if (existing) {
+        libraryId = existing.id;
+      }
+    }
+    if (!libraryId) {
+      const lib = await (prisma as any).chemicalLibrary.create({
+        data: {
+          name: body.name,
+          casNumber: body.casNumber || null,
+          formula: body.formula || null,
+          ghsPictograms: JSON.stringify(body.ghsPictograms || []),
+          hazardClass: body.hazardClass || null,
+          signalWord: body.signalWord || null,
+          hazardStatements: JSON.stringify(body.hazardStatements || []),
+          precautionaryStatements: JSON.stringify(body.precautionaryStatements || []),
+          pubchemCid: body.pubchemCid || null,
+        },
+      });
+      libraryId = lib.id;
+    }
   }
+
+  const duplicate = await (prisma as any).chemicalItemComponent.findUnique({
+    where: { chemicalItemId_libraryId: { chemicalItemId: params.id, libraryId } },
+  });
+  if (duplicate) return NextResponse.json({ error: "This chemical is already added to this item." }, { status: 409 });
 
   const component = await (prisma as any).chemicalItemComponent.create({
     data: {
