@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, Search, RefreshCw, HelpCircle, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,10 @@ const SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 export default function IncidentsPage() {
   const { data: session, status: sessionStatus } = useSession();
+  const searchParams = useSearchParams();
   const initialized = useRef(false);
 
+  const [banner, setBanner] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -40,9 +43,22 @@ export default function IncidentsPage() {
   useEffect(() => {
     if (sessionStatus === "loading" || departments.length === 0 || initialized.current) return;
     initialized.current = true;
-    const deptId = (session?.user as any)?.departmentId;
-    if (deptId) setFilters((f) => ({ ...f, departmentId: deptId }));
+    const user = session?.user as any;
+    const deptId = user?.departmentId;
+    const role = user?.role;
+    const restrictedRoles = ["REPORTER", "VIEWER", "CONTRACTOR"];
+    if (deptId && restrictedRoles.includes(role)) {
+      setFilters((f) => ({ ...f, departmentId: deptId }));
+    }
   }, [sessionStatus, session, departments]);
+
+  useEffect(() => {
+    if (searchParams.get("saved") === "offline") {
+      setBanner("Incident saved offline — will be submitted automatically when you reconnect");
+      const t = setTimeout(() => setBanner(""), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [searchParams]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -78,6 +94,12 @@ export default function IncidentsPage() {
 
   return (
     <div className="space-y-6">
+      {banner && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
+          <p className="text-sm text-amber-700">{banner}</p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">

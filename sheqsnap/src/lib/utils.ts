@@ -27,7 +27,7 @@ export function isOverdue(dueDate: Date | string | null | undefined, status: str
   return isAfter(new Date(), d);
 }
 
-export async function generateReferenceNo(prefix: string, model: "nearMiss" | "incident" | "action" | "logEntry"): Promise<string> {
+export async function generateReferenceNo(prefix: string, model: "nearMiss" | "incident" | "action" | "logEntry" | "legalAppointment" | "chemical"): Promise<string> {
   let count = 0;
   if (model === "nearMiss") {
     count = await prisma.nearMiss.count();
@@ -35,6 +35,10 @@ export async function generateReferenceNo(prefix: string, model: "nearMiss" | "i
     count = await prisma.incident.count();
   } else if (model === "logEntry") {
     count = await prisma.logEntry.count();
+  } else if (model === "legalAppointment") {
+    count = await prisma.legalAppointment.count();
+  } else if (model === "chemical") {
+    count = await (prisma as any).chemical.count();
   } else {
     count = await prisma.action.count();
   }

@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   const departmentId = searchParams.get("departmentId");
 
-  const where: any = {};
+  const where: any = { deletedAt: null };
   if (status) where.status = status as ActionStatus;
   if (priority) where.priority = priority as ActionPriority;
   if (ownerId) where.ownerId = ownerId;

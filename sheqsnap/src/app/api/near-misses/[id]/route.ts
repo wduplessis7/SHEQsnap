@@ -114,6 +114,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: "Admin only" }, { status: 403 });
   }
 
-  await prisma.nearMiss.delete({ where: { id: params.id } });
+  const deletedAt = new Date();
+  await prisma.nearMiss.update({ where: { id: params.id }, data: { deletedAt } });
+  await writeAuditLog("NearMiss", params.id, "DELETE", user.id, { deletedAt: deletedAt.toISOString() });
   return NextResponse.json({ success: true });
 }

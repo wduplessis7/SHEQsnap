@@ -116,6 +116,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: "Admin only" }, { status: 403 });
   }
 
-  await prisma.incident.delete({ where: { id: params.id } });
+  const deletedAt = new Date();
+  await prisma.incident.update({ where: { id: params.id }, data: { deletedAt } });
+  await writeAuditLog("Incident", params.id, "DELETE", user.id, { deletedAt: deletedAt.toISOString() });
   return NextResponse.json({ success: true });
 }

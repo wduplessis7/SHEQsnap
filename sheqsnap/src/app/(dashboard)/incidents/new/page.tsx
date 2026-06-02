@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { useOfflineSubmitWithFiles } from "@/hooks/useOfflineSubmit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,8 +18,11 @@ import { INCIDENT_TYPES, IMPACT_TYPES_BY_INCIDENT, RISK_CATEGORY_GROUPS } from "
 
 export default function NewIncidentPage() {
   const router = useRouter();
+  const { submitWithFiles, isOnline } = useOfflineSubmitWithFiles();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [offlineSaved, setOfflineSaved] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
 
@@ -57,26 +61,31 @@ export default function NewIncidentPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setOfflineSaved(false);
     setSaving(true);
     try {
-      const res = await fetch("/api/incidents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const result = await submitWithFiles({
+        url: "/api/incidents",
+        body: {
           ...form,
           departmentId: form.departmentId || null,
           assignedUserId: form.assignedUserId || null,
           dueDate: form.dueDate || null,
           riskCategory: form.riskCategory || null,
-        }),
+        },
+        entityType: "Incident",
+        description: `Incident at ${form.location || "unknown location"}`,
+        files: selectedFiles.map((file) => ({ file, entityIdField: "incidentId" })),
       });
-      if (res.ok) {
-        const data = await res.json();
-        router.push(`/incidents/${data.id}`);
-      } else {
-        const err = await res.json();
-        setError(err.error || "Failed to create incident");
+      if (result.offline) {
+        router.push("/incidents?saved=offline");
+        return;
       }
+      if (!result.ok) {
+        setError(result.error ?? "Failed to create incident");
+        return;
+      }
+      router.push(`/incidents/${result.data.id}`);
     } finally {
       setSaving(false);
     }
@@ -226,10 +235,40 @@ export default function NewIncidentPage() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Attachments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">
+                Attachments / Photos <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="file"
+                multiple
+                accept="image/*,application/pdf,.doc,.docx"
+                onChange={(e) => setSelectedFiles(Array.from(e.target.files ?? []))}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+              />
+              {selectedFiles.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedFiles.length} file{selectedFiles.length > 1 ? "s" : ""} selected
+                  {!isOnline && " — will upload when reconnected"}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {error && (
           <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3">
             <p className="text-sm text-red-600">{error}</p>
           </div>
+        )}
+
+        {!isOnline && (
+          <p className="text-sm text-amber-600">&#9889; Offline — will be saved locally and uploaded automatically</p>
         )}
 
         <div className="flex gap-3 justify-end">

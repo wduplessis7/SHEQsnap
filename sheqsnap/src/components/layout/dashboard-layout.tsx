@@ -5,6 +5,7 @@ import { Sidebar } from "./sidebar";
 import { TopBar } from "./topbar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
+import { OfflineBanner } from "@/components/offline-banner";
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -38,6 +39,7 @@ export function DashboardLayout({ children, initialModules }: DashboardLayoutPro
       {/* Main content */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         <TopBar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+        <OfflineBanner />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
           {children}
         </main>

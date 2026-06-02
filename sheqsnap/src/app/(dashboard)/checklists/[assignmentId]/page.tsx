@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -267,6 +269,7 @@ export default function ChecklistFormPage() {
   const [error, setError] = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { submit, isOnline } = useOfflineSubmit();
 
   useEffect(() => {
     async function load() {
@@ -299,6 +302,7 @@ export default function ChecklistFormPage() {
     async (currentResponses: ResponsesMap) => {
       if (!assignment) return;
       if (assignment.status === "SUBMITTED") return;
+      if (!navigator.onLine) return;
       setSaving(true);
       try {
         await fetch(`/api/checklists/assignments/${assignmentId}`, {
@@ -333,28 +337,31 @@ export default function ChecklistFormPage() {
     if (!assignment) return;
     setSubmitting(true);
     setError(null);
+    setShowConfirm(false);
     try {
-      const payload = {
-        notes,
-        responses: Object.entries(responses).map(([templateItemId, value]) => ({
-          templateItemId,
-          value: String(value),
-        })),
-      };
-      const res = await fetch(`/api/checklists/assignments/${assignmentId}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const responses_payload = Object.entries(responses).map(([templateItemId, value]) => ({
+        templateItemId,
+        value: String(value),
+      }));
+
+      const result = await submit({
+        url: `/api/checklists/assignments/${assignmentId}/submit`,
+        body: { notes, responses: responses_payload },
+        entityType: 'Checklist',
+        description: `Checklist: ${assignment?.template?.title ?? assignmentId}`,
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Submission failed");
+
+      if (result.offline) {
+        router.push('/checklists?saved=offline');
+        return;
       }
-      setSubmitted(true);
-      setShowConfirm(false);
+      if (!result.ok) {
+        setError(result.error ?? 'Failed to submit checklist');
+        return;
+      }
+      router.push('/checklists?submitted=1');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Submission failed");
-      setShowConfirm(false);
     } finally {
       setSubmitting(false);
     }
@@ -585,12 +592,17 @@ export default function ChecklistFormPage() {
                   />
                 )}
                 {item.type === "PHOTO" && (
-                  <PhotoItem
-                    item={item}
-                    value={value}
-                    onChange={(v) => handleResponseChange(item.id, v)}
-                    readOnly={false}
-                  />
+                  <>
+                    <PhotoItem
+                      item={item}
+                      value={value}
+                      onChange={(v) => handleResponseChange(item.id, v)}
+                      readOnly={false}
+                    />
+                    {!isOnline && (
+                      <p className="text-xs text-amber-500 mt-1">Photos cannot be captured offline — fill in other fields and add photos when back online</p>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -616,6 +628,14 @@ export default function ChecklistFormPage() {
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
           <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {/* Offline indicator */}
+      {!isOnline && (
+        <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+          <span>⚡</span>
+          <span>You are offline — your answers will be saved and submitted automatically when you reconnect</span>
         </div>
       )}
 

@@ -3,8 +3,9 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { RefreshCw, ClipboardList } from "lucide-react";
+import { RefreshCw, ClipboardList, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -98,6 +99,20 @@ export default function ChecklistsPage() {
   const [activeTab, setActiveTab] = useState<AssignmentStatus>("PENDING");
   const [allItems, setAllItems] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [banner, setBanner] = useState<'offline' | 'submitted' | null>(null);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const savedOffline = searchParams.get('saved') === 'offline';
+    const submitted = searchParams.get('submitted') === '1';
+    if (savedOffline) setBanner('offline');
+    else if (submitted) setBanner('submitted');
+
+    if (savedOffline || submitted) {
+      const t = setTimeout(() => setBanner(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [searchParams]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -127,6 +142,20 @@ export default function ChecklistsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Success banners */}
+      {banner === 'offline' && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+          <span className="text-amber-500 shrink-0">⚡</span>
+          <p className="text-sm text-amber-700 font-medium">Checklist saved offline — will be submitted automatically when you reconnect</p>
+        </div>
+      )}
+      {banner === 'submitted' && (
+        <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+          <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
+          <p className="text-sm text-green-700 font-medium">Checklist submitted successfully!</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

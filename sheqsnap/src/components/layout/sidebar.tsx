@@ -23,8 +23,9 @@ import {
   Rocket,
   GraduationCap,
   GitPullRequest,
-
+  Scale,
   CreditCard,
+  FlaskConical,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -117,6 +118,7 @@ export function Sidebar({ onClose, initialModules }: SidebarProps) {
       heading: "Quality",
       items: [
         { href: "/licenses", label: "Licenses", icon: FileCheck, module: "licenses" },
+        { href: "/chemicals", label: "Chemicals", icon: FlaskConical, module: "chemicals" },
         ...(!isContractor ? [{ href: "/checklists", label: "Checklists", icon: ClipboardList, module: "checklists" }] : []),
       ],
     },
@@ -126,6 +128,7 @@ export function Sidebar({ onClose, initialModules }: SidebarProps) {
         ...(isApprover ? [{ href: "/approvals", label: "Approvals", icon: ClipboardCheck }] : []),
         ...(!isContractor ? [{ href: "/reports", label: "Reports", icon: BarChart3, module: "reports" }] : []),
         { href: "/moc", label: "MOC", icon: GitPullRequest, module: "moc" },
+        { href: "/legal-appointments", label: "Legal Appointments", icon: Scale, module: "legal_appointments" },
       ],
     },
   ];
@@ -136,6 +139,7 @@ export function Sidebar({ onClose, initialModules }: SidebarProps) {
     { href: "/admin/contractors", label: "Contractors", icon: HardHat },
     { href: "/admin/checklists", label: "Checklist Mgmt", icon: ClipboardCheck },
     { href: "/admin/platform-license", label: "Platform License", icon: CreditCard },
+    { href: "/admin/legal-positions", label: "Legal Positions", icon: BookOpen },
   ];
 
   function NavLink({

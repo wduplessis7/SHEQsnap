@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, WifiOff } from "lucide-react";
+import { useOfflineSubmitWithFiles } from "@/hooks/useOfflineSubmit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,10 +21,12 @@ function NewActionPageInner() {
   const nearMissId = searchParams.get("nearMissId");
   const incidentId = searchParams.get("incidentId");
 
+  const { submitWithFiles, isOnline } = useOfflineSubmitWithFiles();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [users, setUsers] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const [form, setForm] = useState({
     description: "",
@@ -56,29 +59,35 @@ function NewActionPageInner() {
     setError("");
     setSaving(true);
     try {
-      const res = await fetch("/api/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const result = await submitWithFiles({
+        url: "/api/actions",
+        body: {
           ...form,
           nearMissId: form.nearMissId || null,
           incidentId: form.incidentId || null,
           assignedGroupId: form.assignedGroupId || null,
           dueDate: form.dueDate || null,
-        }),
+        },
+        entityType: "Action",
+        description: `Action: ${form.description.slice(0, 60)}`,
+        files: selectedFiles.map((file) => ({ file, entityIdField: "actionId" })),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (nearMissId) {
-          router.push(`/near-misses/${nearMissId}`);
-        } else if (incidentId) {
-          router.push(`/incidents/${incidentId}`);
-        } else {
-          router.push(`/actions/${data.id}`);
-        }
+
+      if (result.offline) {
+        router.push("/actions?saved=offline");
+        return;
+      }
+      if (!result.ok) {
+        setError(result.error ?? "Failed to create action");
+        return;
+      }
+      const data = result.data;
+      if (nearMissId) {
+        router.push(`/near-misses/${nearMissId}`);
+      } else if (incidentId) {
+        router.push(`/incidents/${incidentId}`);
       } else {
-        const err = await res.json();
-        setError(err.error || "Failed to create action");
+        router.push(`/actions/${data.id}`);
       }
     } finally {
       setSaving(false);
@@ -178,6 +187,32 @@ function NewActionPageInner() {
               </p>
             </CardContent>
           </Card>
+        )}
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Attachments</CardTitle></CardHeader>
+          <CardContent>
+            <input
+              type="file"
+              multiple
+              accept="image/*,application/pdf,.doc,.docx"
+              onChange={(e) => setSelectedFiles(Array.from(e.target.files ?? []))}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+            />
+            {selectedFiles.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                {selectedFiles.length} file{selectedFiles.length > 1 ? "s" : ""} selected
+                {!isOnline && " — will upload when reconnected"}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {!isOnline && (
+          <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            <WifiOff className="h-4 w-4 flex-shrink-0" />
+            <span>You are offline — this action will be saved locally and submitted automatically when you reconnect</span>
+          </div>
         )}
 
         {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}

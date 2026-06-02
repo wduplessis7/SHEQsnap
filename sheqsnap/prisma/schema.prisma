@@ -105,12 +105,13 @@ model Department {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users      User[]
-  nearMisses NearMiss[]
-  incidents  Incident[]
-  actions    Action[]
-  companies  Company[]
-  logEntries LogEntry[]
+  users             User[]
+  nearMisses        NearMiss[]
+  incidents         Incident[]
+  actions           Action[]
+  companies         Company[]
+  logEntries        LogEntry[]
+  legalAppointments LegalAppointment[]
 }
 
 model Group {
@@ -198,6 +199,17 @@ model User {
   checklistSubmissions ChecklistSubmission[] @relation("SubmissionUser")
   mocNotifications    MocNotification[]
 
+  // Legal Appointments
+  legalPositionsArchived  LegalPosition[]       @relation("PositionArchivedBy")
+  appointmentsCreated     LegalAppointment[]    @relation("AppointmentCreatedBy")
+  appointmentsTerminated  LegalAppointment[]    @relation("AppointmentTerminatedBy")
+  appointmentDocsUploaded AppointmentDocument[] @relation("AppointmentDocUploader")
+  conflictsReviewed       ConflictOfInterest[]  @relation("ConflictReviewer")
+
+  // Chemical Register
+  chemicalsAdded      Chemical[]           @relation("ChemicalAddedBy")
+  sdsUploaded         SdsDocument[]        @relation("SdsUploadedBy")
+
   // Document management
   ownedDocuments      Document[]           @relation("DocOwner")
   authoredVersions    DocVersion[]         @relation("DocVersionAuthor")
@@ -227,6 +239,7 @@ model NearMiss {
   contractorDetails   String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
 
   reportedBy    User        @relation("NearMissReporter", fields: [reportedById], references: [id])
   department    Department? @relation(fields: [departmentId], references: [id])
@@ -261,6 +274,7 @@ model Incident {
   investigationNotes String?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
+  deletedAt          DateTime?
 
   reportedBy    User        @relation("IncidentReporter", fields: [reportedById], references: [id])
   department    Department? @relation(fields: [departmentId], references: [id])
@@ -289,6 +303,7 @@ model Action {
   escalationFlag   Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
 
   owner          User        @relation("ActionOwner", fields: [ownerId], references: [id])
   department     Department? @relation(fields: [departmentId], references: [id])
@@ -831,6 +846,179 @@ model DocAcknowledgement {
   @@unique([documentId, userId])
 }
 
+// ─── Legal Appointments ──────────────────────────────────────────────────────
+
+enum OrganizationType {
+  PRIVATE_COMPANY
+  PUBLIC_COMPANY
+  SOE
+  MUNICIPALITY
+  GOVERNMENT_ENTITY
+  NPO
+  TRUST
+  BOARD
+  COMMITTEE
+  OTHER
+}
+
+enum AppointmentCategory {
+  BOARD
+  EXECUTIVE
+  STATUTORY
+  COMMITTEE
+  REGULATORY
+  OTHER
+}
+
+enum AppointmentType {
+  PERMANENT
+  ACTING
+  INTERIM
+  TEMPORARY
+  FIXED_TERM
+  EX_OFFICIO
+}
+
+enum AppointmentStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+  EXPIRED
+  RESIGNED
+  RENEWED
+}
+
+model LegalPosition {
+  id                              String              @id @default(cuid())
+  name                            String
+  code                            String              @unique
+  organizationType                OrganizationType
+  appointmentCategory             AppointmentCategory
+  description                     String?
+  isStatutory                     Boolean             @default(false)
+  termLengthMonths                Int?
+  renewalAllowed                  Boolean             @default(true)
+  minQualifications               String?
+  eligibilityRules                String?
+  requiresResolution              Boolean             @default(false)
+  requiresBackgroundCheck         Boolean             @default(false)
+  requiresDeclarationOfInterest   Boolean             @default(false)
+  requiresGazettePublication      Boolean             @default(false)
+  requiredDocuments               String?
+  complianceNotes                 String?
+  isActive                        Boolean             @default(true)
+  archivedAt                      DateTime?
+  archivedById                    String?
+  archiveReason                   String?
+  createdAt                       DateTime            @default(now())
+  updatedAt                       DateTime            @updatedAt
+
+  archivedBy   User?              @relation("PositionArchivedBy", fields: [archivedById], references: [id])
+  appointments LegalAppointment[]
+}
+
+model LegalAppointment {
+  id                   String            @id @default(cuid())
+  referenceNo          String            @unique
+  positionId           String
+  entityName           String
+  departmentId         String?
+
+  // Appointee details
+  fullName             String
+  idNumber             String?
+  passportNumber       String?
+  nationality          String            @default("South African")
+  gender               String?
+  race                 String?
+  disability           String?
+  email                String?
+  phone                String?
+  address              String?
+  taxNumber            String?
+  employeeNumber       String?
+
+  // Appointment details
+  appointmentDate      DateTime
+  effectiveDate        DateTime
+  endDate              DateTime?
+  termLengthMonths     Int?
+  appointmentType      AppointmentType   @default(PERMANENT)
+  status               AppointmentStatus @default(DRAFT)
+
+  // SA Government-specific fields
+  appointmentAuthority String?
+  gazettedDate         DateTime?
+  gazetteNumber        String?
+
+  // Compliance tracking
+  resolutionRef        String?
+  acceptanceDate       DateTime?
+  consentDate          DateTime?
+  complianceNotes      String?
+
+  // Termination
+  terminationReason    String?
+  terminatedAt         DateTime?
+  terminatedById       String?
+
+  // Renewal reminders
+  reminder180Sent      Boolean           @default(false)
+  reminder90Sent       Boolean           @default(false)
+  reminder30Sent       Boolean           @default(false)
+
+  createdById          String
+  updatedById          String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  deletedAt            DateTime?
+
+  position     LegalPosition         @relation(fields: [positionId], references: [id])
+  department   Department?           @relation(fields: [departmentId], references: [id])
+  createdBy    User                  @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
+  terminatedBy User?                 @relation("AppointmentTerminatedBy", fields: [terminatedById], references: [id])
+  documents    AppointmentDocument[]
+  conflicts    ConflictOfInterest[]
+}
+
+model AppointmentDocument {
+  id             String   @id @default(cuid())
+  appointmentId  String
+  documentType   String
+  fileName       String
+  originalName   String
+  mimeType       String?
+  size           Int?
+  version        Int      @default(1)
+  expiryDate     DateTime?
+  notes          String?
+  uploadedById   String
+  uploadedAt     DateTime @default(now())
+
+  appointment LegalAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  uploadedBy  User            @relation("AppointmentDocUploader", fields: [uploadedById], references: [id])
+}
+
+model ConflictOfInterest {
+  id               String   @id @default(cuid())
+  appointmentId    String
+  declarationType  String
+  entityName       String?
+  description      String
+  interestValue    String?
+  relationshipType String?
+  managementPlan   String?
+  status           String   @default("DISCLOSED")
+  disclosedAt      DateTime @default(now())
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime @default(now())
+
+  appointment LegalAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  reviewedBy  User?            @relation("ConflictReviewer", fields: [reviewedById], references: [id])
+}
+
 // ─── Platform Licensing ───────────────────────────────────────────────────────
 
 enum ServerTier {
@@ -861,4 +1049,91 @@ model PlatformLicense {
   notes                 String?
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
+}
+
+// ─── Chemical Register & SDS Library ────────────────────────────────────────
+
+model Chemical {
+  id              String   @id @default(cuid())
+  referenceNo     String   @unique
+  name            String
+  tradeName       String?
+  casNumber       String?
+  formula         String?
+  manufacturer    String?
+  supplier        String?
+
+  // GHS Classification (stored as JSON strings)
+  ghsPictograms          String @default("[]")
+  hazardClass            String?
+  signalWord             String?  // "DANGER" | "WARNING"
+  hazardStatements       String  @default("[]")
+  precautionaryStatements String @default("[]")
+
+  // Physical properties
+  flashPoint    String?
+  boilingPoint  String?
+  physicalState String?   // SOLID | LIQUID | GAS | AEROSOL
+  colour        String?
+  odour         String?
+
+  // Regulatory
+  isHazardous      Boolean @default(true)
+  unNumber         String?
+  mhiThreshold     Float?   // Major Hazard Installation threshold (kg/L)
+  mhiQuantityOnSite Float?
+
+  // PubChem reference (for auto-population)
+  pubchemCid    Int?
+
+  // Emergency
+  emergencyContact String?
+  poisonCentre     String?
+
+  notes       String?
+  addedById   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  addedBy      User              @relation("ChemicalAddedBy", fields: [addedById], references: [id])
+  sdsDocuments SdsDocument[]
+  locations    ChemicalLocation[]
+}
+
+model SdsDocument {
+  id            String    @id @default(cuid())
+  chemicalId    String
+  version       String    @default("1.0")
+  language      String    @default("English")
+  effectiveDate DateTime?
+  expiryDate    DateTime?
+  filename      String
+  originalName  String
+  fileSize      Int
+  mimeType      String    @default("application/pdf")
+  isActive      Boolean   @default(true)
+  notes         String?
+  uploadedById  String
+  createdAt     DateTime  @default(now())
+  deletedAt     DateTime?
+
+  chemical   Chemical @relation(fields: [chemicalId], references: [id])
+  uploadedBy User     @relation("SdsUploadedBy", fields: [uploadedById], references: [id])
+}
+
+model ChemicalLocation {
+  id                String   @id @default(cuid())
+  chemicalId        String
+  locationName      String
+  buildingArea      String?
+  quantity          Float?
+  unit              String   @default("kg")
+  maxQuantity       Float?
+  storageConditions String?
+  qrToken           String   @unique @default(cuid())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  chemical Chemical @relation(fields: [chemicalId], references: [id])
 }

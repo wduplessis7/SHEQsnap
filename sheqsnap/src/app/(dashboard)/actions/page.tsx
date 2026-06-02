@@ -28,6 +28,7 @@ function ActionsPageInner() {
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [offlineBanner, setOfflineBanner] = useState("");
   const [page, setPage] = useState(1);
   const [users, setUsers] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -43,10 +44,25 @@ function ActionsPageInner() {
   });
 
   useEffect(() => {
+    if (searchParams.get("saved") === "offline") {
+      setOfflineBanner("Action saved offline — will be submitted automatically when you reconnect");
+      const t = setTimeout(() => setOfflineBanner(""), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (sessionStatus === "loading" || departments.length === 0 || initialized.current) return;
     initialized.current = true;
-    const deptId = (session?.user as any)?.departmentId;
-    if (deptId) setFilters((f) => ({ ...f, departmentId: deptId }));
+    const user = session?.user as any;
+    const deptId = user?.departmentId;
+    const role = user?.role;
+    // REPORTER, VIEWER, CONTRACTOR only see their own department by default
+    // ADMIN, MANAGER, SAFETY_OFFICER see all departments
+    const restrictedRoles = ["REPORTER", "VIEWER", "CONTRACTOR"];
+    if (deptId && restrictedRoles.includes(role)) {
+      setFilters((f) => ({ ...f, departmentId: deptId }));
+    }
   }, [sessionStatus, session, departments]);
 
   const fetchData = useCallback(async () => {
@@ -96,6 +112,11 @@ function ActionsPageInner() {
 
   return (
     <div className="space-y-6">
+      {offlineBanner && (
+        <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-4 py-2">
+          <span>⚡</span><span>{offlineBanner}</span>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">

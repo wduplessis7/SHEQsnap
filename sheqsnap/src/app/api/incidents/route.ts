@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "20");
 
-  const where: any = {};
+  const where: any = { deletedAt: null };
   if (status) where.status = status as IncidentStatus;
   if (severity) where.severityLevel = severity as SeverityLevel;
   if (departmentId) where.departmentId = departmentId;
