@@ -9,6 +9,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV DATABASE_URL="file:/data/prod.db"
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_DEMO_MODE=true
 RUN npx prisma generate
 RUN npm run build
 
