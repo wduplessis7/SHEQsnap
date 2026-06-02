@@ -69,7 +69,7 @@ export default function ChemicalDetailPage() {
   const [locForm, setLocForm] = useState({ locationName: "", buildingArea: "", quantity: "", unit: "kg", maxQuantity: "", storageConditions: "" });
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-  const [compAddMode, setCompAddMode] = useState<"search" | "pubchem">("search");
+  const [compAddMode, setCompAddMode] = useState<"search" | "pubchem">("pubchem");
   const [libSearch, setLibSearch] = useState("");
   const [libResults, setLibResults] = useState<any[]>([]);
   const [libSearching, setLibSearching] = useState(false);
@@ -667,6 +667,11 @@ export default function ChemicalDetailPage() {
                       />
                     </div>
                     {libSearching && <p className="text-xs text-gray-400 mt-1">Searching...</p>}
+                    {!libSearching && libSearch.trim().length > 0 && libResults.length === 0 && !selectedLib && (
+                      <div className="mt-2 rounded-lg bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-800">
+                        No results found. <button type="button" className="font-semibold underline" onClick={() => setCompAddMode("pubchem")}>Switch to Add New / PubChem</button> to add it.
+                      </div>
+                    )}
                     {!libSearching && libResults.length > 0 && !selectedLib && (
                       <div className="mt-1 border rounded-lg shadow-sm overflow-hidden">
                         {libResults.map((r: any) => (
