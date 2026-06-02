@@ -43,6 +43,8 @@ function LoginForm() {
     }
   }
 
+  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
   const demoAccounts = [
     { label: "Admin", email: "admin@sheqsnap.com" },
     { label: "Safety Officer", email: "safety@sheqsnap.com" },
@@ -115,23 +117,25 @@ function LoginForm() {
         </Button>
       </form>
 
-      <div className="mt-6 pt-5 border-t border-gray-100">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Demo accounts</p>
-        <div className="grid grid-cols-2 gap-2">
-          {demoAccounts.map((a) => (
-            <button
-              key={a.email}
-              type="button"
-              onClick={() => signInAs(a.email)}
-              disabled={loading}
-              className="text-left px-3 py-2 rounded-lg border border-gray-200 hover:border-[#FFFC41] hover:bg-yellow-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span className="block text-xs font-semibold text-gray-800">{a.label}</span>
-              <span className="block text-[11px] text-gray-400 truncate">{a.email}</span>
-            </button>
-          ))}
+      {isDemoMode && (
+        <div className="mt-6 pt-5 border-t border-gray-100">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Demo accounts</p>
+          <div className="grid grid-cols-2 gap-2">
+            {demoAccounts.map((a) => (
+              <button
+                key={a.email}
+                type="button"
+                onClick={() => signInAs(a.email)}
+                disabled={loading}
+                className="text-left px-3 py-2 rounded-lg border border-gray-200 hover:border-[#FFFC41] hover:bg-yellow-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="block text-xs font-semibold text-gray-800">{a.label}</span>
+                <span className="block text-[11px] text-gray-400 truncate">{a.email}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );

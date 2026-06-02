@@ -39,6 +39,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
     if (!libraryId) {
+      if (!body.name || !body.name.trim()) {
+        return NextResponse.json({ error: "Chemical name is required" }, { status: 400 });
+      }
       const lib = await (prisma as any).chemicalLibrary.create({
         data: {
           name: body.name,

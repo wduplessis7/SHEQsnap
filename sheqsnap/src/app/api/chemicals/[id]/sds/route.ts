@@ -33,6 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Verify item exists
   const item = await (prisma as any).chemicalItem.findUnique({ where: { id: params.id } });
   if (!item) return NextResponse.json({ error: "Chemical item not found" }, { status: 404 });
+  if (item.deletedAt) return NextResponse.json({ error: "Chemical item has been deleted" }, { status: 410 });
 
   const language = body.language || "English";
 

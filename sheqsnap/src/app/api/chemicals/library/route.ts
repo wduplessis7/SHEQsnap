@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search");
 

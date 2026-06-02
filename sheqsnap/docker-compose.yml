@@ -15,6 +15,7 @@ services:
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-sheqsnap}
       NEXT_PUBLIC_S3_PUBLIC_URL: ${NEXT_PUBLIC_S3_PUBLIC_URL:-https://sheqsnap.s3.af-south-1.amazonaws.com}
       S3_TENANT_PREFIX: "qa"
+      NEXT_PUBLIC_DEMO_MODE: "true"
     volumes:
       - /opt/sheqsnap/data:/data
     ports:

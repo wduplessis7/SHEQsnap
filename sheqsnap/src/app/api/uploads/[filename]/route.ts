@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
 import { existsSync } from "fs";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(req: NextRequest, { params }: { params: { filename: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const filename = params.filename;
   if (!filename || filename.includes("..")) {
     return NextResponse.json({ error: "Invalid" }, { status: 400 });

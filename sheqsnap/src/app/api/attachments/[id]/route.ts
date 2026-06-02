@@ -5,13 +5,20 @@ import { prisma } from "@/lib/prisma";
 import { unlink } from "fs/promises";
 import path from "path";
 import { deleteFile } from "@/lib/storage";
+import { Role } from "@prisma/client";
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const user = session.user as any;
+
   const attachment = await prisma.attachment.findUnique({ where: { id: params.id } });
   if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (attachment.uploadedById !== user.id && user.role !== Role.ADMIN) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   if (process.env.AWS_REGION) {
     await deleteFile(attachment.filename).catch(() => {});

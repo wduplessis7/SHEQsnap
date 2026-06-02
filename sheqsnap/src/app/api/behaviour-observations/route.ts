@@ -15,10 +15,12 @@ export async function GET(req: NextRequest) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
-  const where: Record<string, unknown> = {
-    NOT: { status: "DELETED" },
-  };
-  if (status && status !== "ALL") where.status = status;
+  const where: any = {};
+  if (status && status !== "ALL") {
+    where.status = status;
+  } else {
+    where.NOT = { status: "DELETED" };
+  }
   if (riskLevel) where.riskLevel = riskLevel;
   if (safetyCategory) where.safetyCategory = safetyCategory;
   if (location) where.location = { contains: location };

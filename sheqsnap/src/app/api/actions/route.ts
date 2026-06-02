@@ -74,6 +74,9 @@ export async function POST(req: NextRequest) {
 
   const ownerId = body.ownerId || user.id;
   const owner = await prisma.user.findUnique({ where: { id: ownerId }, select: { departmentId: true } });
+  if (body.ownerId && !owner) {
+    return NextResponse.json({ error: "Assigned user not found" }, { status: 404 });
+  }
   const departmentId = owner?.departmentId || user.departmentId || null;
 
   const action = await prisma.action.create({

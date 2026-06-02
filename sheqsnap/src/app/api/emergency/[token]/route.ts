@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+function safeJson(val: string | null | undefined): string[] {
+  if (!val) return [];
+  try { return JSON.parse(val); } catch { return []; }
+}
+
 export async function GET(req: NextRequest, { params }: { params: { token: string } }) {
   const location = await (prisma as any).chemicalLocation.findUnique({
     where: { qrToken: params.token },
@@ -42,12 +47,10 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
         ? {
             name: lib.name,
             casNumber: lib.casNumber,
-            ghsPictograms: lib.ghsPictograms ? JSON.parse(lib.ghsPictograms) : [],
+            ghsPictograms: safeJson(lib.ghsPictograms),
             signalWord: lib.signalWord,
-            hazardStatements: lib.hazardStatements ? JSON.parse(lib.hazardStatements) : [],
-            precautionaryStatements: lib.precautionaryStatements
-              ? JSON.parse(lib.precautionaryStatements)
-              : [],
+            hazardStatements: safeJson(lib.hazardStatements),
+            precautionaryStatements: safeJson(lib.precautionaryStatements),
           }
         : null,
     };
