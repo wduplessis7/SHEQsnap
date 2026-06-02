@@ -20,6 +20,8 @@ const MODULE_LABELS: Record<string, string> = {
   "licenses": "Licenses",
   "reports": "Reports",
   "documents": "Documents",
+  "chemicals": "Chemicals",
+  "legal_appointments": "Legal Appointments",
 };
 
 function formatDate(dateStr: string | null | undefined) {
