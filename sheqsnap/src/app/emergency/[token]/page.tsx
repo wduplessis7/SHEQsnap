@@ -156,7 +156,7 @@ export default async function EmergencyPage({ params }: { params: { token: strin
                     <div>
                       <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-2">Hazard Statements</p>
                       <ol className="space-y-1">
-                        {hazards.map((s, i) => (
+                        {(hazards as string[]).map((s, i) => (
                           <li key={i} className="text-sm text-red-900 flex gap-2">
                             <span className="text-red-400 min-w-[1.5rem] font-medium">{i + 1}.</span>
                             {s}
@@ -175,7 +175,7 @@ export default async function EmergencyPage({ params }: { params: { token: strin
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-5">
             <h3 className="text-sm font-bold text-blue-700 uppercase tracking-wide mb-3">Precautionary Statements</h3>
             <ol className="space-y-1.5">
-              {allPrecautionary.map((s, i) => (
+              {(allPrecautionary as string[]).map((s, i) => (
                 <li key={i} className="text-sm text-blue-900 flex gap-2">
                   <span className="text-blue-400 min-w-[1.5rem] font-medium">{i + 1}.</span>
                   {s}
