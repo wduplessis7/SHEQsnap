@@ -14,6 +14,8 @@ function extractJson(text: string): string {
   return text.trim();
 }
 
+export const maxDuration = 120;
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -62,6 +64,7 @@ Respond with this exact JSON structure:
     const res = await fetch(`${OLLAMA_URL}/v1/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(110_000),
       body: JSON.stringify({
         model: OLLAMA_MODEL,
         messages: [
