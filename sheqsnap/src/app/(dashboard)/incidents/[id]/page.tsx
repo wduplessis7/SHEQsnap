@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit, Save, X, Loader2, Calendar, MapPin, User, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Edit, Save, X, Loader2, Calendar, MapPin, User, AlertTriangle, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,7 @@ import { AuditLogSection } from "@/components/ui/audit-log-section";
 import { AttachmentsSection } from "@/components/ui/attachments-section";
 import { formatDate, formatDateTime, INCIDENT_TYPES, IMPACT_TYPES_BY_INCIDENT, RISK_CATEGORY_GROUPS, isOverdue } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { AIAnalysisPanel } from "@/components/ai/AIAnalysisPanel";
 
 const STATUSES = ["NEW", "SUBMITTED", "UNDER_REVIEW", "ACTION_REQUIRED", "IN_PROGRESS", "CLOSED", "CANCELLED"];
 
@@ -250,6 +251,10 @@ export default function IncidentDetailPage() {
               <TabsTrigger value="comments">Comments ({item.comments?.length || 0})</TabsTrigger>
               <TabsTrigger value="attachments">Files ({item.attachments?.length || 0})</TabsTrigger>
               <TabsTrigger value="audit">History</TabsTrigger>
+              <TabsTrigger value="ai-analysis" className="gap-1.5">
+                <Brain className="h-3.5 w-3.5" />
+                AI Analysis
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="actions">
               <Card>
@@ -288,6 +293,9 @@ export default function IncidentDetailPage() {
             </TabsContent>
             <TabsContent value="audit">
               <Card><CardContent className="p-4"><AuditLogSection auditLogs={item.auditLogs || []} /></CardContent></Card>
+            </TabsContent>
+            <TabsContent value="ai-analysis">
+              <AIAnalysisPanel entityType="incident" entityData={item} />
             </TabsContent>
           </Tabs>
         </div>

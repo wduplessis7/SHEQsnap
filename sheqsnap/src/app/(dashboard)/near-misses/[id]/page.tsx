@@ -16,6 +16,7 @@ import {
   MapPin,
   User,
   AlertTriangle,
+  Brain,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ import { AuditLogSection } from "@/components/ui/audit-log-section";
 import { AttachmentsSection } from "@/components/ui/attachments-section";
 import { formatDate, formatDateTime, RISK_CATEGORIES, RISK_CATEGORY_GROUPS, isOverdue } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { AIAnalysisPanel } from "@/components/ai/AIAnalysisPanel";
 
 const STATUSES = ["NEW", "SUBMITTED", "UNDER_REVIEW", "ACTION_REQUIRED", "IN_PROGRESS", "CLOSED", "CANCELLED"];
 
@@ -374,13 +376,17 @@ export default function NearMissDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Tabs: Actions, Comments, Attachments, Audit */}
+          {/* Tabs: Actions, Comments, Attachments, Audit, AI Analysis */}
           <Tabs defaultValue="actions">
             <TabsList>
               <TabsTrigger value="actions">Actions ({item.actions?.length || 0})</TabsTrigger>
               <TabsTrigger value="comments">Comments ({item.comments?.length || 0})</TabsTrigger>
               <TabsTrigger value="attachments">Files ({item.attachments?.length || 0})</TabsTrigger>
               <TabsTrigger value="audit">History</TabsTrigger>
+              <TabsTrigger value="ai-analysis" className="gap-1.5">
+                <Brain className="h-3.5 w-3.5" />
+                AI Analysis
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="actions">
               <Card>
@@ -440,6 +446,9 @@ export default function NearMissDetailPage() {
                   <AuditLogSection auditLogs={item.auditLogs || []} />
                 </CardContent>
               </Card>
+            </TabsContent>
+            <TabsContent value="ai-analysis">
+              <AIAnalysisPanel entityType="near-miss" entityData={item} />
             </TabsContent>
           </Tabs>
         </div>

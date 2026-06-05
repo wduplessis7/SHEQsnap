@@ -26,6 +26,7 @@ import {
   Scale,
   CreditCard,
   FlaskConical,
+  MessageSquare,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -112,6 +113,7 @@ export function Sidebar({ onClose, initialModules }: SidebarProps) {
         { href: "/incidents", label: "Incidents", icon: FileWarning },
         { href: "/inductions", label: "Inductions", icon: GraduationCap, module: "inductions" },
         { href: "/logs", label: "Log Register", icon: BookOpen },
+        { href: "/toolbox-talk", label: "Toolbox Talks", icon: MessageSquare },
       ],
     },
     {
