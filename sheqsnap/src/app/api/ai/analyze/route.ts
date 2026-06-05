@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://192.168.1.92:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:7b";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
 
 function extractJson(text: string): string {
   const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
