@@ -31,50 +31,36 @@ export async function POST(req: NextRequest) {
   const incidentSummary =
     incidents.length > 0
       ? incidents
-          .map(
-            (inc: any, i: number) =>
-              `Incident ${i + 1}: [${inc.severityLevel}] ${inc.incidentType || "General"} — ${inc.description?.substring(0, 200) || "No description"}`
+          .slice(0, 5)
+          .map((inc: any, i: number) =>
+            `I${i + 1}: [${inc.severityLevel}] ${inc.incidentType || "General"} — ${inc.description?.substring(0, 100) || "No description"}`
           )
           .join("\n")
-      : "No incidents in selected period.";
+      : "None.";
 
   const nearMissSummary =
     nearMisses.length > 0
       ? nearMisses
-          .map(
-            (nm: any, i: number) =>
-              `Near Miss ${i + 1}: [${nm.severityLevel}] ${nm.riskCategory || "General"} — ${nm.description?.substring(0, 200) || "No description"}`
+          .slice(0, 5)
+          .map((nm: any, i: number) =>
+            `NM${i + 1}: [${nm.severityLevel}] ${nm.riskCategory || "General"} — ${nm.description?.substring(0, 100) || "No description"}`
           )
           .join("\n")
-      : "No near misses in selected period.";
+      : "None.";
 
   const sessionDate = date || new Date().toLocaleDateString("en-ZA");
 
   const systemPrompt =
-    "You are an experienced SHEQ Safety Officer generating practical toolbox talk briefings for workers on site. Generate content that is clear, actionable, and directly relevant to recent incidents. Always respond with valid JSON only.";
+    "You are a SHEQ Safety Officer. Generate toolbox talk briefings. Respond with valid JSON only — no markdown, no code blocks.";
 
-  const userPrompt = `Generate a practical toolbox talk briefing based on the following recent safety data.
-${topic ? `Requested Focus Topic: ${topic}` : "Choose the most relevant topic based on the data below."}
-Session Date: ${sessionDate}
+  const userPrompt = `Generate a toolbox talk for workers.
+${topic ? `Topic: ${topic}` : "Pick the most relevant topic from the data."}
+Date: ${sessionDate}
+Incidents: ${incidentSummary}
+Near Misses: ${nearMissSummary}
 
-RECENT INCIDENTS:
-${incidentSummary}
-
-RECENT NEAR MISSES:
-${nearMissSummary}
-
-Respond with this exact JSON structure:
-{
-  "title": "Short, punchy toolbox talk title",
-  "date": "${sessionDate}",
-  "facilitator": "Safety Officer",
-  "duration": "15 minutes",
-  "safetyMessage": "2-3 sentence opening safety message that sets the tone and urgency",
-  "keyPoints": ["key point 1 workers must know", "key point 2", "key point 3", "key point 4", "key point 5"],
-  "discussionQuestions": ["question to ask the group 1", "question 2", "question 3"],
-  "actionItems": ["specific commitment workers make 1", "commitment 2", "commitment 3", "commitment 4"],
-  "takeawayMessage": "One memorable closing sentence that workers will remember"
-}`;
+Return ONLY this JSON:
+{"title":"short title","date":"${sessionDate}","facilitator":"Safety Officer","duration":"15 minutes","safetyMessage":"1-2 sentence opening message","keyPoints":["point1","point2","point3"],"discussionQuestions":["q1","q2"],"actionItems":["action1","action2","action3"],"takeawayMessage":"one closing sentence"}`;
 
   try {
     const res = await fetch(`${OLLAMA_URL}/v1/chat/completions`, {
@@ -87,7 +73,9 @@ Respond with this exact JSON structure:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.4,
+        temperature: 0.3,
+        max_tokens: 400,
+        keep_alive: -1,
       }),
     });
 

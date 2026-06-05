@@ -36,29 +36,17 @@ export async function POST(req: NextRequest) {
   };
 
   const systemPrompt =
-    "You are a Senior Safety Officer with 20+ years of experience in SHEQ management. Analyze safety incidents and near misses to help teams understand root causes and prevent recurrence. Always respond with valid JSON only — no markdown, no code blocks, just raw JSON.";
+    "You are a Senior Safety Officer. Analyze safety incidents concisely. Respond with valid JSON only — no markdown, no code blocks.";
 
-  const userPrompt = `Analyze this ${type} and provide a structured safety analysis.
-
-Record Type: ${type}
+  const userPrompt = `Analyze this ${type}:
 Severity: ${data.severity || "Unknown"}
 Category: ${data.category || "General"}
-Description: ${data.description || "No description provided"}
-${data.rootCause ? `Root Cause Notes: ${data.rootCause}` : ""}
-${data.investigationNotes ? `Investigation Notes: ${data.investigationNotes}` : ""}
-${data.department ? `Department: ${data.department}` : ""}
-${data.location ? `Location: ${data.location}` : ""}
+Description: ${data.description || "No description"}
+${data.rootCause ? `Root Cause: ${data.rootCause}` : ""}
+${data.department ? `Dept: ${data.department}` : ""}
 
-Respond with this exact JSON structure:
-{
-  "summary": "2-3 sentence executive summary of the incident and key safety concerns",
-  "rootCauses": ["root cause 1", "root cause 2", "root cause 3"],
-  "immediateActions": ["immediate action 1", "immediate action 2", "immediate action 3"],
-  "preventiveMeasures": ["preventive measure 1", "preventive measure 2", "preventive measure 3", "preventive measure 4"],
-  "investigationChecklist": ["checklist item 1", "checklist item 2", "checklist item 3", "checklist item 4", "checklist item 5"],
-  "riskLevel": "HIGH",
-  "patternNote": "Any pattern observation or null if none"
-}`;
+Return ONLY this JSON (no extra text):
+{"summary":"1-2 sentence summary","rootCauses":["cause1","cause2"],"immediateActions":["action1","action2"],"preventiveMeasures":["measure1","measure2","measure3"],"investigationChecklist":["item1","item2","item3"],"riskLevel":"HIGH","patternNote":null}`;
 
   try {
     const res = await fetch(`${OLLAMA_URL}/v1/chat/completions`, {
@@ -71,7 +59,9 @@ Respond with this exact JSON structure:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.3,
+        temperature: 0.2,
+        max_tokens: 400,
+        keep_alive: -1,
       }),
     });
 
