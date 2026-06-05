@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { licenseHasModule } from "@/lib/license";
-
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://192.168.1.92:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
+import { aiCompletion, getProviderLabel } from "@/lib/ai-client";
 
 function extractJson(text: string): string {
   const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -66,41 +64,26 @@ Open Actions: ${openActions} | Overdue Actions: ${overdueActions}
 Top At-Risk Department: ${topDept}
 3-Month Trend: ${trend}
 
-Return ONLY a JSON array of exactly 3 objects:
-[{"rank":1,"title":"short risk title","riskLevel":"HIGH","trend":"INCREASING","description":"1-2 sentence description of the risk","recommendedActions":["action1","action2"]},...]
+Return ONLY a JSON array of exactly 3 objects (be concise, max 20 words per field):
+[{"rank":1,"title":"Risk title","riskLevel":"HIGH","trend":"INCREASING","description":"Brief description.","actions":["action1","action2"]}]
 
-riskLevel must be one of: LOW, MEDIUM, HIGH, CRITICAL
-trend must be one of: INCREASING, STABLE, DECREASING`;
+riskLevel: LOW|MEDIUM|HIGH|CRITICAL  trend: INCREASING|STABLE|DECREASING`;
 
   try {
-    const res = await fetch(`${OLLAMA_URL}/v1/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(110_000),
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.2,
-        max_tokens: 450,
-        keep_alive: -1,
-      }),
+    const rawText = await aiCompletion({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      maxTokens: 300,
+      temperature: 0.2,
     });
 
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Ollama error ${res.status}: ${err}`);
-    }
-
-    const json = await res.json();
-    const rawText: string = json.choices?.[0]?.message?.content ?? "";
     const extracted = extractJson(rawText);
     const parsed = JSON.parse(extracted);
     const risks = Array.isArray(parsed) ? parsed : parsed.risks ?? [];
 
-    return NextResponse.json({ risks, configured: true });
+    return NextResponse.json({ risks, configured: true, provider: getProviderLabel() });
   } catch (err: any) {
     console.error("Predictive risks AI error:", err);
     return NextResponse.json({ error: err.message || "AI generation failed" }, { status: 500 });

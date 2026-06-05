@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { licenseHasModule } from "@/lib/license";
-
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://192.168.1.92:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
+import { aiCompletion, getProviderLabel } from "@/lib/ai-client";
 
 function extractJson(text: string): string {
   const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -65,32 +63,17 @@ Return ONLY this JSON:
 {"title":"short title","date":"${sessionDate}","facilitator":"Safety Officer","duration":"15 minutes","safetyMessage":"1-2 sentence opening message","keyPoints":["point1","point2","point3"],"discussionQuestions":["q1","q2"],"actionItems":["action1","action2","action3"],"takeawayMessage":"one closing sentence"}`;
 
   try {
-    const res = await fetch(`${OLLAMA_URL}/v1/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(110_000),
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 400,
-        keep_alive: -1,
-      }),
+    const rawText = await aiCompletion({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      maxTokens: 400,
+      temperature: 0.3,
     });
 
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Ollama error ${res.status}: ${err}`);
-    }
-
-    const json = await res.json();
-    const rawText: string = json.choices?.[0]?.message?.content ?? "";
     const parsed = JSON.parse(extractJson(rawText));
-
-    return NextResponse.json({ ...parsed, configured: true });
+    return NextResponse.json({ ...parsed, configured: true, provider: getProviderLabel() });
   } catch (err: any) {
     console.error("Toolbox talk AI error:", err);
     return NextResponse.json({ error: err.message || "AI generation failed" }, { status: 500 });
