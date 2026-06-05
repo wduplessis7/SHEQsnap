@@ -11,7 +11,8 @@ interface PredictedRisk {
   riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   trend: "INCREASING" | "STABLE" | "DECREASING";
   description: string;
-  recommendedActions: string[];
+  recommendedActions?: string[];
+  actions?: string[];
 }
 
 interface PredictiveRisksPanelProps {
@@ -41,17 +42,17 @@ const RISK_STYLES: Record<string, { card: string; badge: string; rank: string }>
   },
 };
 
-const TREND_ICON = {
-  INCREASING: <TrendingUp className="h-3.5 w-3.5 text-red-500" />,
-  STABLE: <Minus className="h-3.5 w-3.5 text-yellow-500" />,
-  DECREASING: <TrendingDown className="h-3.5 w-3.5 text-green-500" />,
-};
-
-const TREND_LABEL = {
+const TREND_LABEL: Record<string, string> = {
   INCREASING: "Increasing",
   STABLE: "Stable",
   DECREASING: "Decreasing",
 };
+
+function TrendIcon({ trend }: { trend: string }) {
+  if (trend === "INCREASING") return <TrendingUp className="h-3.5 w-3.5 text-red-500" />;
+  if (trend === "DECREASING") return <TrendingDown className="h-3.5 w-3.5 text-green-500" />;
+  return <Minus className="h-3.5 w-3.5 text-yellow-500" />;
+}
 
 export function PredictiveRisksPanel({ stats }: PredictiveRisksPanelProps) {
   const [risks, setRisks] = useState<PredictedRisk[] | null>(null);
@@ -159,22 +160,24 @@ export function PredictiveRisksPanel({ stats }: PredictiveRisksPanelProps) {
                           {risk.riskLevel}
                         </span>
                         <span className="inline-flex items-center gap-1 text-[11px] text-gray-600 bg-white/70 border border-gray-200 px-2 py-0.5 rounded-full">
-                          {TREND_ICON[risk.trend]}
-                          {TREND_LABEL[risk.trend]}
+                          <TrendIcon trend={risk.trend} />
+                          {TREND_LABEL[risk.trend] ?? risk.trend}
                         </span>
                       </div>
                       <p className="text-sm text-gray-700 mb-3 leading-relaxed">{risk.description}</p>
-                      <div>
-                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Recommended Actions</p>
-                        <ul className="space-y-1">
-                          {risk.recommendedActions.map((action, i) => (
-                            <li key={i} className="flex items-start gap-1.5 text-sm text-gray-700">
-                              <ChevronRight className="h-3.5 w-3.5 text-gray-400 mt-0.5 shrink-0" />
-                              {action}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      {(risk.actions ?? risk.recommendedActions ?? []).length > 0 && (
+                        <div>
+                          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Recommended Actions</p>
+                          <ul className="space-y-1">
+                            {(risk.actions ?? risk.recommendedActions ?? []).map((action, i) => (
+                              <li key={i} className="flex items-start gap-1.5 text-sm text-gray-700">
+                                <ChevronRight className="h-3.5 w-3.5 text-gray-400 mt-0.5 shrink-0" />
+                                {action}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
