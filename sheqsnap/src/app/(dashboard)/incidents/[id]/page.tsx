@@ -41,14 +41,18 @@ export default function IncidentDetailPage() {
   const [hasAiModule, setHasAiModule] = useState(false);
 
   useEffect(() => {
+    fetch("/api/license/modules").then((r) => r.json()).then((license) => {
+      const mods: string[] = license.modules ?? [];
+      setHasAiModule(mods.includes("all") || mods.includes("ai"));
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     Promise.all([
       fetch(`/api/incidents/${id}`).then((r) => r.json()),
       fetch("/api/admin/departments").then((r) => r.json()),
       fetch("/api/admin/users").then((r) => r.json()),
-      fetch("/api/license/modules").then((r) => r.json()),
-    ]).then(([data, depts, userList, license]) => {
-      const mods: string[] = license.modules ?? [];
-      setHasAiModule(mods.includes("all") || mods.includes("ai"));
+    ]).then(([data, depts, userList]) => {
       setItem(data);
       setForm({
         dateOfIncident: data.dateOfIncident?.split("T")[0] || "",
