@@ -7,6 +7,7 @@ import { MobileBottomNav } from "./mobile-bottom-nav";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { OfflineBanner } from "@/components/offline-banner";
 import { cn } from "@/lib/utils";
+import { ModulesProvider } from "@/lib/modules-context";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ export function DashboardLayout({ children, initialModules }: DashboardLayoutPro
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
+    <ModulesProvider modules={initialModules ?? []}>
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -51,5 +53,6 @@ export function DashboardLayout({ children, initialModules }: DashboardLayoutPro
       {/* Onboarding modal */}
       <OnboardingModal />
     </div>
+    </ModulesProvider>
   );
 }

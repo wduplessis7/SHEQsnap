@@ -33,6 +33,7 @@ import { AttachmentsSection } from "@/components/ui/attachments-section";
 import { formatDate, formatDateTime, RISK_CATEGORIES, RISK_CATEGORY_GROUPS, isOverdue } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { AIAnalysisPanel } from "@/components/ai/AIAnalysisPanel";
+import { useHasModule } from "@/lib/modules-context";
 
 const STATUSES = ["NEW", "SUBMITTED", "UNDER_REVIEW", "ACTION_REQUIRED", "IN_PROGRESS", "CLOSED", "CANCELLED"];
 
@@ -50,22 +51,7 @@ export default function NearMissDetailPage() {
   const [form, setForm] = useState<any>({});
   const [departments, setDepartments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  const [hasAiModule, setHasAiModule] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/license/modules")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((license) => {
-        const mods: string[] = license.modules ?? [];
-        const has = mods.includes("all") || mods.includes("ai");
-        console.log("[SHEQSnap] License modules:", mods, "hasAi:", has);
-        setHasAiModule(has);
-      })
-      .catch((err) => console.error("[SHEQSnap] License check failed:", err));
-  }, []);
+  const hasAiModule = useHasModule("ai");
 
   useEffect(() => {
     Promise.all([
