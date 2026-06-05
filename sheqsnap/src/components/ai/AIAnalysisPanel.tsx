@@ -113,7 +113,7 @@ export function AIAnalysisPanel({ entityType, entityData }: AIAnalysisPanelProps
               <Brain className="h-6 w-6 text-indigo-400" />
             </div>
             <p className="text-sm text-gray-500 max-w-xs">
-              Click <span className="font-medium text-indigo-600">Analyse with AI</span> to get instant root cause analysis, recommended actions, and an investigation checklist powered by Claude AI.
+              Click <span className="font-medium text-indigo-600">Analyse with AI</span> to get instant root cause analysis, recommended actions, and an investigation checklist.
             </p>
           </div>
         )}
@@ -142,7 +142,7 @@ export function AIAnalysisPanel({ entityType, entityData }: AIAnalysisPanelProps
             <div>
               <p className="text-sm font-medium text-amber-800">AI not configured</p>
               <p className="text-sm text-amber-700 mt-0.5">
-                Add your <code className="bg-amber-100 px-1 rounded text-xs font-mono">ANTHROPIC_API_KEY</code> to the <code className="bg-amber-100 px-1 rounded text-xs font-mono">.env</code> file to enable AI insights.
+                Ollama is not reachable. Check that the Ollama service is running and <code className="bg-amber-100 px-1 rounded text-xs font-mono">OLLAMA_URL</code> is set correctly.
               </p>
             </div>
           </div>
@@ -258,7 +258,7 @@ export function AIAnalysisPanel({ entityType, entityData }: AIAnalysisPanelProps
               </div>
             )}
 
-            <p className="text-[10px] text-gray-400 text-right">Powered by Claude AI — Senior Safety Officer perspective</p>
+            <p className="text-[10px] text-gray-400 text-right">Powered by Ollama (Mistral 7B) — Senior Safety Officer perspective</p>
           </div>
         )}
       </CardContent>

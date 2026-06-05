@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import Anthropic from "@anthropic-ai/sdk";
+
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://192.168.1.92:11434";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "mistral:7b-instruct-q4_0";
+
+function extractJson(text: string): string {
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (match) return match[1].trim();
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start !== -1 && end !== -1) return text.slice(start, end + 1);
+  return text.trim();
+}
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ configured: false, message: "ANTHROPIC_API_KEY not configured" });
-  }
 
   const body = await req.json();
   const { type, data } = body as {
@@ -26,7 +33,8 @@ export async function POST(req: NextRequest) {
     };
   };
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const systemPrompt =
+    "You are a Senior Safety Officer with 20+ years of experience in SHEQ management. Analyze safety incidents and near misses to help teams understand root causes and prevent recurrence. Always respond with valid JSON only — no markdown, no code blocks, just raw JSON.";
 
   const userPrompt = `Analyze this ${type} and provide a structured safety analysis.
 
@@ -51,16 +59,27 @@ Respond with this exact JSON structure:
 }`;
 
   try {
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      system:
-        "You are a Senior Safety Officer with 20+ years of experience in SHEQ (Safety, Health, Environment, Quality) management. Analyze safety incidents and near misses to help teams understand root causes and prevent recurrence. Always respond with valid JSON only — no markdown, no code blocks, just raw JSON.",
-      messages: [{ role: "user", content: userPrompt }],
+    const res = await fetch(`${OLLAMA_URL}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.3,
+      }),
     });
 
-    const rawText = (message.content[0] as any).text as string;
-    const parsed = JSON.parse(rawText);
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Ollama error ${res.status}: ${err}`);
+    }
+
+    const json = await res.json();
+    const rawText: string = json.choices?.[0]?.message?.content ?? "";
+    const parsed = JSON.parse(extractJson(rawText));
 
     return NextResponse.json({ ...parsed, configured: true });
   } catch (err: any) {

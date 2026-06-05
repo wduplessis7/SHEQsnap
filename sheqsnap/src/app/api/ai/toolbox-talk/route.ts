@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import Anthropic from "@anthropic-ai/sdk";
+
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://192.168.1.92:11434";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "mistral:7b-instruct-q4_0";
+
+function extractJson(text: string): string {
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (match) return match[1].trim();
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start !== -1 && end !== -1) return text.slice(start, end + 1);
+  return text.trim();
+}
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ configured: false, message: "ANTHROPIC_API_KEY not configured" });
-  }
 
   const body = await req.json();
   const { incidents, nearMisses, topic, date } = body as {
@@ -18,8 +25,6 @@ export async function POST(req: NextRequest) {
     topic?: string;
     date?: string;
   };
-
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const incidentSummary =
     incidents.length > 0
@@ -41,9 +46,14 @@ export async function POST(req: NextRequest) {
           .join("\n")
       : "No near misses in selected period.";
 
+  const sessionDate = date || new Date().toLocaleDateString("en-ZA");
+
+  const systemPrompt =
+    "You are an experienced SHEQ Safety Officer generating practical toolbox talk briefings for workers on site. Generate content that is clear, actionable, and directly relevant to recent incidents. Always respond with valid JSON only.";
+
   const userPrompt = `Generate a practical toolbox talk briefing based on the following recent safety data.
 ${topic ? `Requested Focus Topic: ${topic}` : "Choose the most relevant topic based on the data below."}
-Session Date: ${date || new Date().toLocaleDateString("en-ZA")}
+Session Date: ${sessionDate}
 
 RECENT INCIDENTS:
 ${incidentSummary}
@@ -54,7 +64,7 @@ ${nearMissSummary}
 Respond with this exact JSON structure:
 {
   "title": "Short, punchy toolbox talk title",
-  "date": "${date || new Date().toLocaleDateString("en-ZA")}",
+  "date": "${sessionDate}",
   "facilitator": "Safety Officer",
   "duration": "15 minutes",
   "safetyMessage": "2-3 sentence opening safety message that sets the tone and urgency",
@@ -65,16 +75,27 @@ Respond with this exact JSON structure:
 }`;
 
   try {
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      system:
-        "You are an experienced SHEQ Safety Officer generating practical toolbox talk briefings for workers on site. Generate content that is clear, actionable, and directly relevant to recent incidents. Always respond with valid JSON only.",
-      messages: [{ role: "user", content: userPrompt }],
+    const res = await fetch(`${OLLAMA_URL}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.4,
+      }),
     });
 
-    const rawText = (message.content[0] as any).text as string;
-    const parsed = JSON.parse(rawText);
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Ollama error ${res.status}: ${err}`);
+    }
+
+    const json = await res.json();
+    const rawText: string = json.choices?.[0]?.message?.content ?? "";
+    const parsed = JSON.parse(extractJson(rawText));
 
     return NextResponse.json({ ...parsed, configured: true });
   } catch (err: any) {
