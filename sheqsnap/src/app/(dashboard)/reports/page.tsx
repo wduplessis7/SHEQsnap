@@ -14,6 +14,8 @@ import {
   PieChart, Pie, Cell, Legend, LineChart, Line,
 } from "recharts";
 import { Download, FileSpreadsheet, FileText, RefreshCw } from "lucide-react";
+import { PredictiveRisksPanel } from "@/components/ai/PredictiveRisksPanel";
+import { useHasModule } from "@/lib/modules-context";
 
 const SEVERITY_CHART_COLORS = { LOW: "#22c55e", MEDIUM: "#eab308", HIGH: "#f97316", CRITICAL: "#ef4444" };
 const STATUS_CHART_COLORS: Record<string, string> = {
@@ -22,6 +24,7 @@ const STATUS_CHART_COLORS: Record<string, string> = {
 const PIE_COLORS = ["#3b82f6", "#22c55e", "#f97316", "#ef4444", "#8b5cf6", "#06b6d4"];
 
 export default function ReportsPage() {
+  const hasAiModule = useHasModule("ai");
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -144,6 +147,9 @@ export default function ReportsPage() {
               </Card>
             ))}
           </div>
+
+          {/* AI Predictive Risks */}
+          {hasAiModule && <PredictiveRisksPanel stats={stats} />}
 
           {/* Charts row 1 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
