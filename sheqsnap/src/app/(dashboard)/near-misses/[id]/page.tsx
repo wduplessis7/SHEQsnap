@@ -53,10 +53,18 @@ export default function NearMissDetailPage() {
   const [hasAiModule, setHasAiModule] = useState(false);
 
   useEffect(() => {
-    fetch("/api/license/modules").then((r) => r.json()).then((license) => {
-      const mods: string[] = license.modules ?? [];
-      setHasAiModule(mods.includes("all") || mods.includes("ai"));
-    }).catch(() => {});
+    fetch("/api/license/modules")
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((license) => {
+        const mods: string[] = license.modules ?? [];
+        const has = mods.includes("all") || mods.includes("ai");
+        console.log("[SHEQSnap] License modules:", mods, "hasAi:", has);
+        setHasAiModule(has);
+      })
+      .catch((err) => console.error("[SHEQSnap] License check failed:", err));
   }, []);
 
   useEffect(() => {
