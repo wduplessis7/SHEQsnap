@@ -38,13 +38,17 @@ export default function IncidentDetailPage() {
   const [form, setForm] = useState<any>({});
   const [departments, setDepartments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [hasAiModule, setHasAiModule] = useState(false);
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/incidents/${id}`).then((r) => r.json()),
       fetch("/api/admin/departments").then((r) => r.json()),
       fetch("/api/admin/users").then((r) => r.json()),
-    ]).then(([data, depts, userList]) => {
+      fetch("/api/license/modules").then((r) => r.json()),
+    ]).then(([data, depts, userList, license]) => {
+      const mods: string[] = license.modules ?? [];
+      setHasAiModule(mods.includes("all") || mods.includes("ai"));
       setItem(data);
       setForm({
         dateOfIncident: data.dateOfIncident?.split("T")[0] || "",
@@ -251,10 +255,12 @@ export default function IncidentDetailPage() {
               <TabsTrigger value="comments">Comments ({item.comments?.length || 0})</TabsTrigger>
               <TabsTrigger value="attachments">Files ({item.attachments?.length || 0})</TabsTrigger>
               <TabsTrigger value="audit">History</TabsTrigger>
-              <TabsTrigger value="ai-analysis" className="gap-1.5">
-                <Brain className="h-3.5 w-3.5" />
-                AI Analysis
-              </TabsTrigger>
+              {hasAiModule && (
+                <TabsTrigger value="ai-analysis" className="gap-1.5">
+                  <Brain className="h-3.5 w-3.5" />
+                  AI Analysis
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="actions">
               <Card>
@@ -294,9 +300,11 @@ export default function IncidentDetailPage() {
             <TabsContent value="audit">
               <Card><CardContent className="p-4"><AuditLogSection auditLogs={item.auditLogs || []} /></CardContent></Card>
             </TabsContent>
-            <TabsContent value="ai-analysis">
-              <AIAnalysisPanel entityType="incident" entityData={item} />
-            </TabsContent>
+            {hasAiModule && (
+              <TabsContent value="ai-analysis">
+                <AIAnalysisPanel entityType="incident" entityData={item} />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
 

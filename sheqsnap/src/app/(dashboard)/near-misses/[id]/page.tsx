@@ -50,13 +50,17 @@ export default function NearMissDetailPage() {
   const [form, setForm] = useState<any>({});
   const [departments, setDepartments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [hasAiModule, setHasAiModule] = useState(false);
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/near-misses/${id}`).then((r) => r.json()),
       fetch("/api/admin/departments").then((r) => r.json()),
       fetch("/api/admin/users").then((r) => r.json()),
-    ]).then(([data, depts, userList]) => {
+      fetch("/api/license/modules").then((r) => r.json()),
+    ]).then(([data, depts, userList, license]) => {
+      const mods: string[] = license.modules ?? [];
+      setHasAiModule(mods.includes("all") || mods.includes("ai"));
       setItem(data);
       setForm({
         dateReported: data.dateReported?.split("T")[0] || "",
@@ -383,10 +387,12 @@ export default function NearMissDetailPage() {
               <TabsTrigger value="comments">Comments ({item.comments?.length || 0})</TabsTrigger>
               <TabsTrigger value="attachments">Files ({item.attachments?.length || 0})</TabsTrigger>
               <TabsTrigger value="audit">History</TabsTrigger>
-              <TabsTrigger value="ai-analysis" className="gap-1.5">
-                <Brain className="h-3.5 w-3.5" />
-                AI Analysis
-              </TabsTrigger>
+              {hasAiModule && (
+                <TabsTrigger value="ai-analysis" className="gap-1.5">
+                  <Brain className="h-3.5 w-3.5" />
+                  AI Analysis
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="actions">
               <Card>
@@ -447,9 +453,11 @@ export default function NearMissDetailPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-            <TabsContent value="ai-analysis">
-              <AIAnalysisPanel entityType="near-miss" entityData={item} />
-            </TabsContent>
+            {hasAiModule && (
+              <TabsContent value="ai-analysis">
+                <AIAnalysisPanel entityType="near-miss" entityData={item} />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
 

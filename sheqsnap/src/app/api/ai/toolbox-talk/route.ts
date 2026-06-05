@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { licenseHasModule } from "@/lib/license";
 
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://192.168.1.92:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
@@ -19,6 +20,7 @@ export const maxDuration = 120;
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!await licenseHasModule("ai")) return NextResponse.json({ error: "AI module not licensed" }, { status: 403 });
 
   const body = await req.json();
   const { incidents, nearMisses, topic, date } = body as {

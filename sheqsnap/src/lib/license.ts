@@ -59,3 +59,8 @@ export async function getLicenseModules(): Promise<LicenseData> {
 export function hasModule(modules: string[], slug: string): boolean {
   return modules.includes('all') || modules.includes(slug)
 }
+
+export async function licenseHasModule(slug: string): Promise<boolean> {
+  const license = await getLicenseModules()
+  return hasModule(license.modules, slug)
+}

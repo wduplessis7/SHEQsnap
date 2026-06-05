@@ -22,6 +22,7 @@ const MODULE_LABELS: Record<string, string> = {
   "documents": "Documents",
   "chemicals": "MSDS",
   "legal_appointments": "Legal Appointments",
+  "ai": "AI Safety Analyst",
 };
 
 function formatDate(dateStr: string | null | undefined) {
