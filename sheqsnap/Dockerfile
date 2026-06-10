@@ -1,7 +1,7 @@
 FROM node:20-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci && npm install --no-save sharp
 
 FROM node:20-slim AS builder
 WORKDIR /app
@@ -32,6 +32,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/libsql ./node_modules/libsql
 COPY --from=builder /app/node_modules/@libsql ./node_modules/@libsql
+COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
 
 RUN mkdir -p /data && chown nextjs:nodejs /data
 

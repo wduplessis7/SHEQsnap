@@ -248,6 +248,11 @@ model NearMiss {
   attachments   Attachment[]
   actions       Action[]
   comments      Comment[]
+
+  @@index([deletedAt, createdAt])
+  @@index([deletedAt, status])
+  @@index([deletedAt, departmentId])
+  @@index([deletedAt, dateReported])
 }
 
 model Incident {
@@ -283,6 +288,11 @@ model Incident {
   attachments   Attachment[]
   actions       Action[]
   comments      Comment[]
+
+  @@index([deletedAt, createdAt])
+  @@index([deletedAt, status])
+  @@index([deletedAt, departmentId])
+  @@index([deletedAt, dateOfIncident])
 }
 
 model Action {
@@ -313,6 +323,11 @@ model Action {
   linkedIncident Incident?   @relation(fields: [incidentId], references: [id])
   attachments    Attachment[]
   comments       Comment[]
+
+  @@index([deletedAt, status])
+  @@index([deletedAt, createdAt])
+  @@index([deletedAt, dueDate])
+  @@index([ownerId, deletedAt])
 }
 
 model Attachment {
@@ -347,6 +362,9 @@ model AuditLog {
   timestamp   DateTime @default(now())
 
   changedBy  User     @relation(fields: [changedById], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([timestamp])
 }
 
 model Comment {
@@ -377,6 +395,9 @@ model ApprovalRequest {
 
   requestedBy      User @relation("ApprovalRequester", fields: [requestedById], references: [id])
   assignedApprover User @relation("ApprovalAssignee", fields: [assignedApproverId], references: [id])
+
+  @@index([assignedApproverId, status])
+  @@index([entityType, entityId])
 }
 
 model LogEntry {
