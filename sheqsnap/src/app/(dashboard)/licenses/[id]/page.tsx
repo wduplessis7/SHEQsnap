@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AttachmentsSection } from "@/components/ui/attachments-section";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,16 @@ const LICENSE_TYPES = [
   "Other",
 ];
 
+interface Attachment {
+  id: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+  uploadedBy: { name: string };
+}
+
 interface License {
   id: string;
   holderName: string;
@@ -60,6 +71,7 @@ interface License {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  attachments: Attachment[];
 }
 
 function statusBadge(status: string) {
@@ -91,6 +103,7 @@ export default function LicenseDetailPage() {
   const id = params.id as string;
 
   const [license, setLicense] = useState<License | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -116,6 +129,7 @@ export default function LicenseDetailPage() {
           setError(data.error);
         } else {
           setLicense(data);
+          setAttachments(data.attachments || []);
           setForm({
             holderName: data.holderName,
             holderType: data.holderType,
@@ -337,6 +351,24 @@ export default function LicenseDetailPage() {
               rows={4}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Attachments */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Attachments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AttachmentsSection
+            attachments={attachments}
+            licenseId={id}
+            onAttachmentAdded={(att) => setAttachments((prev) => [att, ...prev])}
+            onAttachmentDeleted={(attId) => setAttachments((prev) => prev.filter((a) => a.id !== attId))}
+          />
         </CardContent>
       </Card>
 

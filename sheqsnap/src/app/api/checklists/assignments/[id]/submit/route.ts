@@ -21,7 +21,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   if (!assignment) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (assignment.assignedToUserId !== user.id) {
+  const isElevatedRole = ["ADMIN", "MANAGER", "SAFETY_OFFICER"].includes(user.role);
+  if (!isElevatedRole && assignment.assignedToUserId !== null && assignment.assignedToUserId !== user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

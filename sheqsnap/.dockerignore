@@ -8,3 +8,4 @@ dev.db
 .git
 README.md
 wiki
+.ai-secrets.json

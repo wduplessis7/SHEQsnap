@@ -4,7 +4,8 @@ import { Suspense } from "react";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Shield, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,17 +47,17 @@ function LoginForm() {
   const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
   const demoAccounts = [
-    { label: "Admin", email: "admin@sheqsnap.com" },
-    { label: "Safety Officer", email: "safety@sheqsnap.com" },
-    { label: "Manager", email: "manager@sheqsnap.com" },
-    { label: "Reporter", email: "reporter@sheqsnap.com" },
-    { label: "Contractor", email: "contractor@sheqsnap.com" },
+    { label: "Admin", email: "admin@rockridge.co.za" },
+    { label: "Safety Officer", email: "priya.naidoo@rockridge.co.za" },
+    { label: "Manager", email: "thabo.nkosi@rockridge.co.za" },
+    { label: "Reporter", email: "nomvula.sithole@rockridge.co.za" },
+    { label: "Contractor", email: "johan.botes@steelworx.co.za" },
   ];
 
   async function signInAs(demoEmail: string) {
     setError("");
     setLoading(true);
-    const result = await signIn("credentials", { email: demoEmail, password: "Password123!", redirect: false });
+    const result = await signIn("credentials", { email: demoEmail, password: process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? "", redirect: false });
     if (result?.error) {
       setError("Demo login failed");
       setLoading(false);
@@ -147,17 +148,24 @@ export default function LoginPage() {
       <div className="w-full max-w-md px-6">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-[#FFFC41] mb-4">
-            <Shield className="h-9 w-9 text-[#1A1A1A]" />
+          <div className="flex justify-center mb-5">
+            <Image
+              src="/sheqsnap-icon.png"
+              alt="SHEQSnap"
+              width={120}
+              height={120}
+              className="rounded-2xl shadow-lg"
+              priority
+            />
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            <span style={{ color: '#FFFC41' }}>SHEQ</span>snap
-          </h1>
-          <p className="mt-1 text-sm font-medium">
-            <span style={{ color: '#FFFC41' }}>Spot it.</span>{' '}
-            <span className="text-white">Snap it.</span>{' '}
-            <span style={{ color: '#4CAF50' }}>Stop it.</span>
-          </p>
+          <Image
+            src="/sheqsnap-logo-dark.png"
+            alt="SHEQSnap"
+            width={320}
+            height={107}
+            className="h-16 w-auto object-contain mx-auto"
+            priority
+          />
         </div>
 
         <Suspense fallback={<div className="bg-white rounded-2xl shadow-2xl p-8 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-[#FFFC41]" /></div>}>

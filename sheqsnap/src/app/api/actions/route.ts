@@ -5,6 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { generateReferenceNo, writeAuditLog } from "@/lib/utils";
 import { ActionStatus, ActionPriority, LinkedType } from "@prisma/client";
 
+function computeDueDate(actionClass: string, rawDueDate?: string | null): Date | null {
+  const now = new Date();
+  const endOfDay = (d: Date) => { d.setHours(23, 59, 59, 999); return d; };
+  if (actionClass === "A") return endOfDay(new Date(now));
+  if (actionClass === "B") { const d = new Date(now); d.setDate(d.getDate() + 3); return endOfDay(d); }
+  if (actionClass === "C") { const d = new Date(now); d.setDate(d.getDate() + 7); return endOfDay(d); }
+  return rawDueDate ? new Date(rawDueDate) : null;
+}
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -57,9 +66,9 @@ export async function GET(req: NextRequest) {
     ]);
 
     return NextResponse.json({ items, total, page, limit });
-  } catch (err: any) {
-    console.error("[/api/actions GET]", err?.message ?? err);
-    return NextResponse.json({ items: [], total: 0, page, limit, error: err?.message }, { status: 500 });
+  } catch (err) {
+    console.error("[actions GET]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -70,41 +79,50 @@ export async function POST(req: NextRequest) {
   const user = session.user as any;
   const body = await req.json();
 
-  const referenceNo = await generateReferenceNo("ACT", "action");
+  try {
+    const referenceNo = await generateReferenceNo("ACT", "action");
 
-  const ownerId = body.ownerId || user.id;
-  const owner = await prisma.user.findUnique({ where: { id: ownerId }, select: { departmentId: true } });
-  if (body.ownerId && !owner) {
-    return NextResponse.json({ error: "Assigned user not found" }, { status: 404 });
-  }
-  const departmentId = owner?.departmentId || user.departmentId || null;
+    const ownerId = body.ownerId || user.id;
+    const owner = await prisma.user.findUnique({ where: { id: ownerId }, select: { departmentId: true } });
+    if (body.ownerId && !owner) {
+      return NextResponse.json({ error: "Assigned user not found" }, { status: 404 });
+    }
+    const departmentId = owner?.departmentId || user.departmentId || null;
 
-  const action = await prisma.action.create({
-    data: {
+    const actionClass: string = body.actionClass || "NORMAL";
+    const dueDate = computeDueDate(actionClass, body.dueDate);
+
+    const action = await prisma.action.create({
+      data: {
+        referenceNo,
+        linkedType: body.linkedType || "OTHER",
+        nearMissId: body.nearMissId || null,
+        incidentId: body.incidentId || null,
+        description: body.description,
+        ownerId,
+        departmentId,
+        assignedGroupId: body.assignedGroupId || null,
+        priority: body.priority || "MEDIUM",
+        actionClass,
+        dueDate,
+        status: "OPEN",
+        escalationFlag: body.escalationFlag || false,
+      },
+      include: {
+        owner: { select: { id: true, name: true } },
+        linkedNearMiss: { select: { id: true, referenceNo: true } },
+        linkedIncident: { select: { id: true, referenceNo: true } },
+      },
+    });
+
+    await writeAuditLog("Action", action.id, "CREATE", user.id, {
       referenceNo,
-      linkedType: body.linkedType || "OTHER",
-      nearMissId: body.nearMissId || null,
-      incidentId: body.incidentId || null,
-      description: body.description,
-      ownerId,
-      departmentId,
-      assignedGroupId: body.assignedGroupId || null,
-      priority: body.priority || "MEDIUM",
-      dueDate: body.dueDate ? new Date(body.dueDate) : null,
       status: "OPEN",
-      escalationFlag: body.escalationFlag || false,
-    },
-    include: {
-      owner: { select: { id: true, name: true } },
-      linkedNearMiss: { select: { id: true, referenceNo: true } },
-      linkedIncident: { select: { id: true, referenceNo: true } },
-    },
-  });
+    });
 
-  await writeAuditLog("Action", action.id, "CREATE", user.id, {
-    referenceNo,
-    status: "OPEN",
-  });
-
-  return NextResponse.json(action, { status: 201 });
+    return NextResponse.json(action, { status: 201 });
+  } catch (err) {
+    console.error("[actions POST]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

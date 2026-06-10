@@ -694,7 +694,7 @@ export default function LegalAppointmentDetailPage() {
                       <tr key={doc.id} className="border-b last:border-0 hover:bg-gray-50">
                         <td className="px-4 py-3 text-gray-700">{formatDocType(doc.documentType)}</td>
                         <td className="px-4 py-3">
-                          <a href={`/uploads/legal-appointments/${doc.fileName}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate max-w-xs block">
+                          <a href={doc.fileUrl || `/api/uploads/${doc.fileName}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate max-w-xs block">
                             {doc.originalName}
                           </a>
                           {doc.notes && <p className="text-xs text-gray-400 mt-0.5">{doc.notes}</p>}

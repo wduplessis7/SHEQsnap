@@ -109,7 +109,7 @@ export default function NewMocPage() {
 
   useEffect(() => {
     fetch("/api/moc/templates").then((r) => r.json()).then((d) => setTemplates(Array.isArray(d) ? d : []));
-    fetch("/api/admin/users").then((r) => r.json()).then((d) => setAllUsers(Array.isArray(d) ? d.filter((u: any) => u.active) : []));
+    fetch("/api/users").then((r) => r.json()).then((d) => setAllUsers(Array.isArray(d) ? d.filter((u: any) => u.active) : []));
     fetch("/api/moc/approvers").then((r) => r.json()).then((d) => setApprovers(Array.isArray(d) ? d : []));
   }, []);
 
@@ -358,10 +358,14 @@ export default function NewMocPage() {
                   <SelectTrigger id="approverId"><SelectValue placeholder="Select MOC approver (optional)" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No approver selected</SelectItem>
-                    {approvers.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                    {approvers.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}{a.department?.name ? ` — ${a.department.name}` : ""}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                {approvers.length === 0 && <p className="text-xs text-amber-600">No MOC approvers configured. Ask an admin to set MOC approver flags on users.</p>}
+                {approvers.length === 0 && <p className="text-xs text-amber-600">No managers or admins found in the system.</p>}
               </div>
             </CardContent>
           </Card>

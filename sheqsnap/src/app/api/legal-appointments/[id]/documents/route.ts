@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { randomUUID } from "crypto";
+import { uploadFile, buildStorageKey, getFileUrl, deleteFile } from "@/lib/storage";
+
+const ALLOWED_EXTENSIONS = new Set([
+  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".txt",
+  ".jpg", ".jpeg", ".png", ".gif", ".webp",
+]);
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function POST(
   req: NextRequest,
@@ -26,21 +34,24 @@ export async function POST(
   if (!file) return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
   if (!documentType) return NextResponse.json({ error: "documentType is required" }, { status: 400 });
 
-  const uploadDir = path.join(process.cwd(), "public/uploads/legal-appointments");
-  await mkdir(uploadDir, { recursive: true });
+  if (file.size > MAX_FILE_SIZE) {
+    return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 413 });
+  }
 
-  const ext = path.extname(file.name);
-  const fileName = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}${ext}`;
-  const filePath = path.join(uploadDir, fileName);
+  const ext = path.extname(file.name).toLowerCase();
+  if (!ALLOWED_EXTENSIONS.has(ext)) {
+    return NextResponse.json({ error: "File type not allowed" }, { status: 415 });
+  }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filePath, buffer);
+  const key = buildStorageKey(`legal-appt-${randomUUID()}${ext}`);
+  await uploadFile(key, buffer, file.type || "application/octet-stream");
 
   const document = await prisma.appointmentDocument.create({
     data: {
       appointmentId: params.id,
       documentType,
-      fileName,
+      fileName: key,
       originalName: file.name,
       mimeType: file.type || null,
       size: file.size || null,
@@ -53,7 +64,7 @@ export async function POST(
     },
   });
 
-  return NextResponse.json(document, { status: 201 });
+  return NextResponse.json({ ...document, fileUrl: getFileUrl(document.fileName) }, { status: 201 });
 }
 
 export async function DELETE(
@@ -77,13 +88,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Document does not belong to this appointment" }, { status: 403 });
   }
 
-  const filePath = path.join(process.cwd(), "public/uploads/legal-appointments", document.fileName);
-  try {
-    const { unlink } = await import("fs/promises");
-    await unlink(filePath);
-  } catch {
-    // File may already be missing from disk — proceed with DB deletion
-  }
+  await deleteFile(document.fileName).catch(() => {});
 
   await prisma.appointmentDocument.delete({ where: { id: docId } });
 

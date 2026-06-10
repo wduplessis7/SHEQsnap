@@ -40,9 +40,9 @@ async function fetchLicenseFromServer(): Promise<LicenseData> {
       companyName: data.company?.name ?? undefined,
     }
   } catch {
-    // License server unreachable — fail closed, grant no modules
+    // License server unreachable — fail closed, no modules granted
     return {
-      status: 'active',
+      status: 'error',
       modules: [],
       maxUsers: null,
     }

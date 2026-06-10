@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -10,7 +11,6 @@ import {
   CheckSquare,
   BarChart3,
   Settings,
-  Shield,
   BookOpen,
   ClipboardCheck,
   ClipboardList,
@@ -97,6 +97,7 @@ export function Sidebar({ onClose, initialModules }: SidebarProps) {
     };
     fetchLicenseAlerts();
     const interval = setInterval(fetchLicenseAlerts, 300000);
+    return () => clearInterval(interval);
   }, []);
 
 
@@ -111,8 +112,7 @@ export function Sidebar({ onClose, initialModules }: SidebarProps) {
         { href: "/observations", label: "Observations", icon: Eye },
         { href: "/near-misses", label: "Near Misses", icon: AlertTriangle },
         { href: "/incidents", label: "Incidents", icon: FileWarning },
-        { href: "/inductions", label: "Inductions", icon: GraduationCap, module: "inductions" },
-        { href: "/logs", label: "Log Register", icon: BookOpen },
+        { href: "/inductions", label: "Induction & Medical", icon: GraduationCap, module: "inductions" },
         { href: "/toolbox-talk", label: "Toolbox Talks", icon: MessageSquare, module: "ai" },
       ],
     },
@@ -128,7 +128,7 @@ export function Sidebar({ onClose, initialModules }: SidebarProps) {
       heading: "Management",
       items: [
         ...(isApprover ? [{ href: "/approvals", label: "Approvals", icon: ClipboardCheck }] : []),
-        ...(!isContractor ? [{ href: "/reports", label: "Reports", icon: BarChart3, module: "reports" }] : []),
+        ...(!isContractor ? [{ href: "/reports", label: "Reports", icon: BarChart3 }] : []),
         { href: "/moc", label: "MOC", icon: GitPullRequest, module: "moc" },
         { href: "/legal-appointments", label: "Legal Appointments", icon: Scale, module: "legal_appointments" },
       ],
@@ -208,21 +208,17 @@ export function Sidebar({ onClose, initialModules }: SidebarProps) {
   return (
     <div className="flex h-full flex-col bg-[#1A1A1A] text-white">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 px-4 lg:px-6 border-b border-[#2A2A2A]">
-        <Shield className="h-8 w-8 text-[#FFFC41] shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-col">
-            <span className="text-lg font-extrabold leading-tight tracking-tight">
-              <span style={{ color: '#FFFC41' }}>SHEQ</span>
-              <span className="text-white">Snap</span>
-            </span>
-            <span className="text-[10px] leading-tight font-medium" style={{ color: '#9CA3AF' }}>
-              <span style={{ color: '#FFFC41' }}>Spot it.</span>{' '}
-              <span className="text-white">Snap it.</span>{' '}
-              <span style={{ color: '#4CAF50' }}>Stop it.</span>
-            </span>
-          </div>
-        </div>
+      <div className="flex h-20 items-center px-4 lg:px-6 border-b border-[#2A2A2A]">
+        <Link href="/dashboard" className="flex items-center">
+          <Image
+            src="/sheqsnap-logo-dark.png"
+            alt="SHEQSnap"
+            width={240}
+            height={80}
+            className="h-14 w-auto object-contain"
+            priority
+          />
+        </Link>
         {onClose && (
           <button
             onClick={onClose}

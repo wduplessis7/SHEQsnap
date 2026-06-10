@@ -38,14 +38,17 @@ export async function POST(req: NextRequest) {
   const systemPrompt =
     "You are a Senior Safety Officer. Analyze safety incidents concisely. Respond with valid JSON only — no markdown, no code blocks.";
 
-  const userPrompt = `Analyze this ${type}:
-Severity: ${data.severity || "Unknown"}
-Category: ${data.category || "General"}
-Description: ${data.description || "No description"}
-${data.rootCause ? `Root Cause: ${data.rootCause}` : ""}
-${data.department ? `Dept: ${data.department}` : ""}
+  const userPrompt = `Analyze the safety ${type} described below and return ONLY valid JSON.
 
-Return ONLY this JSON (no extra text):
+<incident_data>
+Severity: ${(data.severity || "Unknown").slice(0, 50)}
+Category: ${(data.category || "General").slice(0, 100)}
+Description: ${(data.description || "No description").slice(0, 2000)}
+${data.rootCause ? `Root Cause: ${data.rootCause.slice(0, 500)}` : ""}
+${data.department ? `Department: ${data.department.slice(0, 100)}` : ""}
+</incident_data>
+
+Return ONLY this JSON structure (no extra text, no markdown):
 {"summary":"1-2 sentence summary","rootCauses":["cause1","cause2"],"immediateActions":["action1","action2"],"preventiveMeasures":["measure1","measure2","measure3"],"investigationChecklist":["item1","item2","item3"],"riskLevel":"HIGH","patternNote":null}`;
 
   try {
@@ -54,7 +57,7 @@ Return ONLY this JSON (no extra text):
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      maxTokens: 400,
+      maxTokens: 2000,
       temperature: 0.2,
     });
 

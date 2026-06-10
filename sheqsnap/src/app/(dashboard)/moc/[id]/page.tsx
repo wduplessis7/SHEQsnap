@@ -60,8 +60,10 @@ interface ChangeRequest {
   reviewDate: string | null;
   status: string;
   requestedByName: string;
+  approvedById: string | null;
   approvedByName: string | null;
   approvedAt: string | null;
+  assignedApproverName: string | null;
   rejectionReason: string | null;
   closureNotes: string | null;
   createdAt: string;
@@ -631,13 +633,21 @@ export default function MocDetailPage() {
                   <p className="text-gray-800">{change?.reviewDate ? formatDate(change.reviewDate) : "—"}</p>
                 </div>
               </div>
-              {change?.approvedByName && (
+              {(change?.assignedApproverName || change?.approvedByName) && (
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Approved By</p>
-                    <p className="text-gray-800">{change.approvedByName}</p>
-                  </div>
-                  {change.approvedAt && (
+                  {change?.assignedApproverName && !change?.approvedByName && (
+                    <div>
+                      <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Assigned Approver</p>
+                      <p className="text-gray-800">{change.assignedApproverName}</p>
+                    </div>
+                  )}
+                  {change?.approvedByName && (
+                    <div>
+                      <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Approved By</p>
+                      <p className="text-gray-800">{change.approvedByName}</p>
+                    </div>
+                  )}
+                  {change?.approvedAt && (
                     <div>
                       <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Approved At</p>
                       <p className="text-gray-800">{formatDate(change.approvedAt)}</p>

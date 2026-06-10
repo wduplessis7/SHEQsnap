@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { RefreshCw, CheckCircle, XCircle, Clock, HelpCircle } from "lucide-react";
+import { RefreshCw, CheckCircle, XCircle, Clock, HelpCircle, GitPullRequest } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 const LOG_TYPE_LABELS: Record<string, string> = {
@@ -28,6 +28,7 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
   INCIDENT: "Incident",
   ACTION: "Action",
   LOG_ENTRY: "Log Entry",
+  MOC: "MOC",
 };
 
 export default function ApprovalsPage() {
@@ -105,6 +106,7 @@ export default function ApprovalsPage() {
     if (approval.entityType === "NEAR_MISS") return d.description || "—";
     if (approval.entityType === "INCIDENT") return d.description || "—";
     if (approval.entityType === "LOG_ENTRY") return d.title || "—";
+    if (approval.entityType === "MOC") return d.title || d.description || "—";
     return "—";
   }
 
@@ -117,6 +119,13 @@ export default function ApprovalsPage() {
     if (!d) return "—";
     const dateStr = d.dateReported || d.dateOfIncident || d.entryDate;
     return dateStr ? formatDate(dateStr) : "—";
+  }
+
+  function getEntityLink(approval: any): string | null {
+    if (approval.entityType === "MOC") return `/moc/${approval.entityId}`;
+    if (approval.entityType === "NEAR_MISS") return `/near-misses/${approval.entityId}`;
+    if (approval.entityType === "INCIDENT") return `/incidents/${approval.entityId}`;
+    return null;
   }
 
   return (
@@ -177,14 +186,23 @@ export default function ApprovalsPage() {
                   approvals.map((approval) => (
                     <tr key={approval.id} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <span className="font-mono text-sm font-medium text-blue-600">
-                          {getEntityRef(approval)}
-                        </span>
+                        {getEntityLink(approval) ? (
+                          <Link href={getEntityLink(approval)!} className="font-mono text-sm font-medium text-blue-600 hover:underline">
+                            {getEntityRef(approval)}
+                          </Link>
+                        ) : (
+                          <span className="font-mono text-sm font-medium text-blue-600">{getEntityRef(approval)}</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
-                        <Badge variant="outline" className="text-xs">
-                          {ENTITY_TYPE_LABELS[approval.entityType] || approval.entityType}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className="text-xs w-fit">
+                            {ENTITY_TYPE_LABELS[approval.entityType] || approval.entityType}
+                          </Badge>
+                          {approval.entityType === "MOC" && approval.entityDetails?.changeType && (
+                            <span className="text-[11px] text-gray-400">{approval.entityDetails.changeType}</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 max-w-xs">
                         <p className="truncate text-gray-700">{getEntityDescription(approval)}</p>

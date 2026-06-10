@@ -147,4 +147,30 @@ Once closed, the record is read-only and the closure date is recorded.
 
 ---
 
+## AI Safety Analysis
+
+The AI Safety Analysis feature is available on individual incident detail pages for users with the **AI Intelligence** module enabled on their SHEQSnap license.
+
+1. Open the incident record
+2. Click the **AI Analysis** tab near the top of the detail page
+3. Click **Analyse with AI**
+4. Wait up to 60 seconds — the analysis runs on a local AI server with no internet connection required
+
+The AI returns the following for the incident:
+
+| Output | Description |
+|--------|-------------|
+| **Risk Level** | An overall risk rating (Critical, High, Medium, or Low) |
+| **Summary** | A concise plain-language summary of the incident |
+| **Root Causes** | Identified underlying causes based on the incident data |
+| **Immediate Actions** | Recommended steps to address the immediate hazard |
+| **Preventive Measures** | Longer-term controls to prevent recurrence |
+| **Investigation Checklist** | A structured checklist to guide the investigation process |
+
+AI output is a starting point for analysis, not a replacement for professional SHEQ judgement. Always apply professional judgement and verify recommendations against actual site conditions.
+
+To run the analysis again with updated information, click **Re-analyse**.
+
+---
+
 [Back to Home](Home)

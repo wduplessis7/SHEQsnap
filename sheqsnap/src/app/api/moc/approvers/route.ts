@@ -8,8 +8,14 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const approvers = await prisma.user.findMany({
-    where: { mocApprover: true, active: true },
-    select: { id: true, name: true, email: true },
+    where: {
+      active: true,
+      OR: [
+        { role: { in: ["MANAGER", "ADMIN"] as any[] } },
+        { mocApprover: true },
+      ],
+    },
+    select: { id: true, name: true, email: true, role: true, department: { select: { name: true } } },
     orderBy: { name: "asc" },
   });
 

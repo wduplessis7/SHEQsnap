@@ -56,15 +56,17 @@ export async function POST(req: NextRequest) {
   const systemPrompt =
     "You are a Senior SHEQ Risk Analyst. Analyse safety data and predict risks. Respond with valid JSON array only — no markdown, no extra text.";
 
-  const userPrompt = `Predict the top 3 highest risks for this company based on safety data.
+  const userPrompt = `Analyse the safety statistics below and predict the top 3 highest risks for this company.
 
-Incidents: ${totalIncidents} total | Severity breakdown: ${incSeverity}
-Near Misses: ${totalNearMisses} total | Severity breakdown: ${nmSeverity}
+<safety_statistics>
+Incidents: ${totalIncidents} total | Severity breakdown: ${incSeverity.slice(0, 200)}
+Near Misses: ${totalNearMisses} total | Severity breakdown: ${nmSeverity.slice(0, 200)}
 Open Actions: ${openActions} | Overdue Actions: ${overdueActions}
-Top At-Risk Department: ${topDept}
-3-Month Trend: ${trend}
+Top At-Risk Department: ${topDept.slice(0, 100)}
+3-Month Trend: ${trend.slice(0, 300)}
+</safety_statistics>
 
-Return ONLY a JSON array of exactly 3 objects (be concise, max 20 words per field):
+Return ONLY a JSON array of exactly 3 objects (no markdown, no extra text, max 20 words per field):
 [{"rank":1,"title":"Risk title","riskLevel":"HIGH","trend":"INCREASING","description":"Brief description.","actions":["action1","action2"]}]
 
 riskLevel: LOW|MEDIUM|HIGH|CRITICAL  trend: INCREASING|STABLE|DECREASING`;
@@ -75,7 +77,7 @@ riskLevel: LOW|MEDIUM|HIGH|CRITICAL  trend: INCREASING|STABLE|DECREASING`;
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      maxTokens: 300,
+      maxTokens: 2000,
       temperature: 0.2,
     });
 

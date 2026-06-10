@@ -28,9 +28,9 @@ export async function GET(req: NextRequest) {
 
   if (search) {
     where.OR = [
-      { fullName: { contains: search, mode: "insensitive" } },
-      { referenceNo: { contains: search, mode: "insensitive" } },
-      { entityName: { contains: search, mode: "insensitive" } },
+      { fullName: { contains: search } },
+      { referenceNo: { contains: search } },
+      { entityName: { contains: search } },
     ];
   }
 
@@ -40,26 +40,31 @@ export async function GET(req: NextRequest) {
     where.endDate = { gte: now, lte: in90 };
   }
 
-  const [total, appointments] = await Promise.all([
-    prisma.legalAppointment.count({ where }),
-    prisma.legalAppointment.findMany({
-      where,
-      include: {
-        position: { select: { id: true, name: true, code: true, appointmentCategory: true } },
-        department: { select: { id: true, name: true } },
-        createdBy: { select: { id: true, name: true, email: true } },
-        _count: { select: { documents: true, conflicts: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-    }),
-  ]);
+  try {
+    const [total, appointments] = await Promise.all([
+      prisma.legalAppointment.count({ where }),
+      prisma.legalAppointment.findMany({
+        where,
+        include: {
+          position: { select: { id: true, name: true, code: true, appointmentCategory: true } },
+          department: { select: { id: true, name: true } },
+          createdBy: { select: { id: true, name: true, email: true } },
+          _count: { select: { documents: true, conflicts: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+    ]);
 
-  return NextResponse.json({
-    data: appointments,
-    pagination: { total, page, limit, pages: Math.ceil(total / limit) },
-  });
+    return NextResponse.json({
+      data: appointments,
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    console.error("[legal-appointments GET]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -76,49 +81,54 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const referenceNo = await generateReferenceNo("LA", "legalAppointment");
+  try {
+    const referenceNo = await generateReferenceNo("LA", "legalAppointment");
 
-  const appointment = await prisma.legalAppointment.create({
-    data: {
-      referenceNo,
-      positionId: body.positionId,
-      entityName: body.entityName,
-      departmentId: body.departmentId || null,
-      fullName: body.fullName,
-      idNumber: body.idNumber || null,
-      passportNumber: body.passportNumber || null,
-      nationality: body.nationality,
-      gender: body.gender || null,
-      race: body.race || null,
-      disability: body.disability || null,
-      email: body.email || null,
-      phone: body.phone || null,
-      address: body.address || null,
-      taxNumber: body.taxNumber || null,
-      employeeNumber: body.employeeNumber || null,
-      appointmentDate: new Date(body.appointmentDate),
-      effectiveDate: new Date(body.effectiveDate),
-      endDate: body.endDate ? new Date(body.endDate) : null,
-      termLengthMonths: body.termLengthMonths ? Number(body.termLengthMonths) : null,
-      appointmentType: body.appointmentType,
-      status: body.status || "DRAFT",
-      appointmentAuthority: body.appointmentAuthority || null,
-      gazettedDate: body.gazettedDate ? new Date(body.gazettedDate) : null,
-      gazetteNumber: body.gazetteNumber || null,
-      resolutionRef: body.resolutionRef || null,
-      acceptanceDate: body.acceptanceDate ? new Date(body.acceptanceDate) : null,
-      consentDate: body.consentDate ? new Date(body.consentDate) : null,
-      complianceNotes: body.complianceNotes || null,
-      createdById: user.id,
-    },
-    include: {
-      position: { select: { id: true, name: true, code: true } },
-      department: { select: { id: true, name: true } },
-      createdBy: { select: { id: true, name: true } },
-    },
-  });
+    const appointment = await prisma.legalAppointment.create({
+      data: {
+        referenceNo,
+        positionId: body.positionId,
+        entityName: body.entityName,
+        departmentId: body.departmentId || null,
+        fullName: body.fullName,
+        idNumber: body.idNumber || null,
+        passportNumber: body.passportNumber || null,
+        nationality: body.nationality,
+        gender: body.gender || null,
+        race: body.race || null,
+        disability: body.disability || null,
+        email: body.email || null,
+        phone: body.phone || null,
+        address: body.address || null,
+        taxNumber: body.taxNumber || null,
+        employeeNumber: body.employeeNumber || null,
+        appointmentDate: new Date(body.appointmentDate),
+        effectiveDate: new Date(body.effectiveDate),
+        endDate: body.endDate ? new Date(body.endDate) : null,
+        termLengthMonths: body.termLengthMonths ? Number(body.termLengthMonths) : null,
+        appointmentType: body.appointmentType,
+        status: body.status || "DRAFT",
+        appointmentAuthority: body.appointmentAuthority || null,
+        gazettedDate: body.gazettedDate ? new Date(body.gazettedDate) : null,
+        gazetteNumber: body.gazetteNumber || null,
+        resolutionRef: body.resolutionRef || null,
+        acceptanceDate: body.acceptanceDate ? new Date(body.acceptanceDate) : null,
+        consentDate: body.consentDate ? new Date(body.consentDate) : null,
+        complianceNotes: body.complianceNotes || null,
+        createdById: user.id,
+      },
+      include: {
+        position: { select: { id: true, name: true, code: true } },
+        department: { select: { id: true, name: true } },
+        createdBy: { select: { id: true, name: true } },
+      },
+    });
 
-  await writeAuditLog("LegalAppointment", appointment.id, "CREATE", user.id, { referenceNo, status: "DRAFT" });
+    await writeAuditLog("LegalAppointment", appointment.id, "CREATE", user.id, { referenceNo, status: "DRAFT" });
 
-  return NextResponse.json(appointment, { status: 201 });
+    return NextResponse.json(appointment, { status: 201 });
+  } catch (err) {
+    console.error("[legal-appointments POST]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

@@ -15,9 +15,17 @@ function computeStatus(expiryDate: Date | null): string {
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const induction = await prisma.induction.findUnique({ where: { id: params.id } });
-  if (!induction) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(induction);
+  try {
+    const induction = await prisma.induction.findUnique({
+      where: { id: params.id },
+      include: { attachments: { include: { uploadedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } } },
+    });
+    if (!induction) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(induction);
+  } catch (err) {
+    console.error("[inductions/[id] GET]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
@@ -34,28 +42,44 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     expiryDate.setMonth(expiryDate.getMonth() + Number(body.validityMonths));
   }
 
-  const updated = await prisma.induction.update({
-    where: { id: params.id },
-    data: {
-      inducteeName: body.inducteeName,
-      inducteeType: body.inducteeType,
-      inductionType: body.inductionType,
-      conductedByName: body.conductedByName,
-      conductedDate,
-      expiryDate,
-      validityMonths: body.validityMonths ? Number(body.validityMonths) : null,
-      status: computeStatus(expiryDate),
-      departmentId: body.departmentId || null,
-      notes: body.notes || null,
-    },
-  });
+  try {
+    const updated = await prisma.induction.update({
+      where: { id: params.id },
+      data: {
+        inducteeName: body.inducteeName,
+        inducteeType: body.inducteeType,
+        inductionType: body.inductionType,
+        conductedByName: body.conductedByName,
+        conductedDate,
+        expiryDate,
+        validityMonths: body.validityMonths ? Number(body.validityMonths) : null,
+        status: computeStatus(expiryDate),
+        medicalResult: body.recordType === "medical" ? (body.medicalResult || null) : null,
+        medicalProvider: body.recordType === "medical" ? (body.medicalProvider || null) : null,
+        departmentId: body.departmentId || null,
+        notes: body.notes || null,
+      },
+    });
 
-  return NextResponse.json(updated);
+    return NextResponse.json(updated);
+  } catch (err) {
+    console.error("[inductions/[id] PUT]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  await prisma.induction.delete({ where: { id: params.id } });
-  return NextResponse.json({ success: true });
+  const user = session.user as any;
+  if (user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  }
+  try {
+    await prisma.induction.delete({ where: { id: params.id } });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[inductions/[id] DELETE]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

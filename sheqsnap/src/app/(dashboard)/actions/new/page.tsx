@@ -33,6 +33,7 @@ function NewActionPageInner() {
     ownerId: "",
     assignedGroupId: "",
     priority: "MEDIUM",
+    actionClass: "NORMAL",
     dueDate: "",
     linkedType: nearMissId ? "NEAR_MISS" : incidentId ? "INCIDENT" : "OTHER",
     nearMissId: nearMissId || "",
@@ -42,7 +43,7 @@ function NewActionPageInner() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/admin/users").then((r) => r.json()),
+      fetch("/api/users").then((r) => r.json()),
       fetch("/api/admin/groups").then((r) => r.json()),
     ]).then(([userList, groupList]) => {
       setUsers(userList.filter((u: any) => u.active));
@@ -134,9 +135,38 @@ function NewActionPageInner() {
                 </Select>
               </div>
               <div>
-                <Label>Due Date</Label>
-                <Input type="date" value={form.dueDate} onChange={(e) => setField("dueDate", e.target.value)} className="mt-1" />
+                <Label>Action Class *</Label>
+                <Select value={form.actionClass} onValueChange={(v) => {
+                  setField("actionClass", v);
+                  if (v !== "NORMAL") setField("dueDate", "");
+                }}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">Class A — Same day</SelectItem>
+                    <SelectItem value="B">Class B — Within 3 days</SelectItem>
+                    <SelectItem value="C">Class C — Within 7 days</SelectItem>
+                    <SelectItem value="NORMAL">Normal — Custom date</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+            <div>
+              <Label>Due Date{form.actionClass === "NORMAL" ? " *" : " (auto-set by class)"}</Label>
+              <Input
+                type="date"
+                value={form.dueDate}
+                onChange={(e) => setField("dueDate", e.target.value)}
+                className="mt-1"
+                disabled={form.actionClass !== "NORMAL"}
+                placeholder={form.actionClass === "A" ? "Today" : form.actionClass === "B" ? "+3 days" : form.actionClass === "C" ? "+7 days" : ""}
+              />
+              {form.actionClass !== "NORMAL" && (
+                <p className="text-xs text-gray-400 mt-1">
+                  {form.actionClass === "A" && "Due date will be set to end of today"}
+                  {form.actionClass === "B" && "Due date will be set to 3 days from now"}
+                  {form.actionClass === "C" && "Due date will be set to 7 days from now"}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

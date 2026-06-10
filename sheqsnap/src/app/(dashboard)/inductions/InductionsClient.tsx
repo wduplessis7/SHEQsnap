@@ -10,6 +10,7 @@ import {
   RefreshCw,
   HelpCircle,
   GraduationCap,
+  Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ import { formatDate } from "@/lib/utils";
 interface Induction {
   id: string;
   referenceNo: string;
+  recordType: string;
   inducteeName: string;
   inducteeType: string;
   inductionType: string;
@@ -34,41 +36,42 @@ interface Induction {
   conductedDate: string;
   expiryDate: string | null;
   status: string;
+  medicalResult: string | null;
   createdAt: string;
 }
 
 function statusBadge(status: string) {
   switch (status) {
     case "expired":
-      return (
-        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700">
-          Expired
-        </span>
-      );
+      return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700">Expired</span>;
     case "expiring_soon":
-      return (
-        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700">
-          Expiring Soon
-        </span>
-      );
+      return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700">Expiring Soon</span>;
     default:
-      return (
-        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-700">
-          Current
-        </span>
-      );
+      return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-700">Current</span>;
   }
+}
+
+function medicalResultBadge(result: string | null) {
+  if (!result) return null;
+  const cfg: Record<string, string> = {
+    "Fit for Duty": "bg-green-100 text-green-700",
+    "Fit with Restrictions": "bg-amber-100 text-amber-700",
+    "Temporarily Unfit": "bg-orange-100 text-orange-700",
+    "Unfit for Duty": "bg-red-100 text-red-700",
+    "Pending Results": "bg-gray-100 text-gray-600",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${cfg[result] ?? "bg-gray-100 text-gray-600"}`}>
+      {result}
+    </span>
+  );
 }
 
 function typeBadge(type: string) {
   return type === "contractor" ? (
-    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-purple-100 text-purple-700 capitalize">
-      Contractor
-    </span>
+    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-purple-100 text-purple-700">Contractor</span>
   ) : (
-    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 capitalize">
-      Employee
-    </span>
+    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700">Employee</span>
   );
 }
 
@@ -79,6 +82,7 @@ export default function InductionsClient() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [recordTypeFilter, setRecordTypeFilter] = useState("all");
 
   const fetchInductions = useCallback(async () => {
     setLoading(true);
@@ -86,20 +90,16 @@ export default function InductionsClient() {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (typeFilter !== "all") params.set("inducteeType", typeFilter);
+      if (recordTypeFilter !== "all") params.set("recordType", recordTypeFilter);
       if (search) params.set("search", search);
       const res = await fetch(`/api/inductions?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setInductions(data);
-      }
+      if (res.ok) setInductions(await res.json());
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, typeFilter, search]);
+  }, [statusFilter, typeFilter, recordTypeFilter, search]);
 
-  useEffect(() => {
-    fetchInductions();
-  }, [fetchInductions]);
+  useEffect(() => { fetchInductions(); }, [fetchInductions]);
 
   useEffect(() => {
     fetch("/api/inductions")
@@ -108,8 +108,8 @@ export default function InductionsClient() {
       .catch(() => {});
   }, [inductions]);
 
-  const totalCount = allInductions.length;
-  const currentCount = allInductions.filter((i) => i.status === "current").length;
+  const inductionRecords = allInductions.filter((i) => i.recordType !== "medical");
+  const medicalRecords = allInductions.filter((i) => i.recordType === "medical");
   const expiringSoonCount = allInductions.filter((i) => i.status === "expiring_soon").length;
   const expiredCount = allInductions.filter((i) => i.status === "expired").length;
 
@@ -118,17 +118,17 @@ export default function InductionsClient() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Inductions & Training</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Inductions & Medicals</h1>
             <Link href="/help/inductions" className="text-gray-400 hover:text-blue-600 transition-colors" title="Help: Inductions">
               <HelpCircle className="h-5 w-5" />
             </Link>
           </div>
-          <p className="text-gray-500 mt-1">Track employee and contractor inductions and validity</p>
+          <p className="text-gray-500 mt-1">Track induction records and occupational health medicals</p>
         </div>
         <Link href="/inductions/new">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
-            Record Induction
+            New Record
           </Button>
         </Link>
       </div>
@@ -136,14 +136,20 @@ export default function InductionsClient() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm font-medium text-gray-500">Total</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{totalCount}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <GraduationCap className="h-4 w-4 text-blue-500" />
+              <p className="text-sm font-medium text-gray-500">Inductions</p>
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{inductionRecords.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm font-medium text-gray-500">Current</p>
-            <p className="text-3xl font-bold text-green-600 mt-1">{currentCount}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <Stethoscope className="h-4 w-4 text-teal-500" />
+              <p className="text-sm font-medium text-gray-500">Medicals</p>
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{medicalRecords.length}</p>
           </CardContent>
         </Card>
         <Card>
@@ -164,12 +170,23 @@ export default function InductionsClient() {
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search name, type, conducted by..."
+            placeholder="Search name, type, provider..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
+
+        <Select value={recordTypeFilter} onValueChange={setRecordTypeFilter}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Record Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Records</SelectItem>
+            <SelectItem value="induction">Inductions Only</SelectItem>
+            <SelectItem value="medical">Medicals Only</SelectItem>
+          </SelectContent>
+        </Select>
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-44">
@@ -185,10 +202,10 @@ export default function InductionsClient() {
 
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-44">
-            <SelectValue placeholder="Inductee Type" />
+            <SelectValue placeholder="Person Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="all">All</SelectItem>
             <SelectItem value="employee">Employee</SelectItem>
             <SelectItem value="contractor">Contractor</SelectItem>
           </SelectContent>
@@ -205,11 +222,11 @@ export default function InductionsClient() {
             <thead className="border-b bg-gray-50">
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Reference</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Inductee</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Type</th>
-                <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Induction Type</th>
-                <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Conducted Date</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Expiry Date</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 font-medium text-gray-600">Record / Type</th>
+                <th className="hidden md:table-cell text-left px-4 py-3 font-medium text-gray-600">Date</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Expiry</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
               </tr>
@@ -225,8 +242,8 @@ export default function InductionsClient() {
                 <tr>
                   <td colSpan={8} className="text-center py-16 text-gray-400">
                     <GraduationCap className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">No inductions found</p>
-                    <p className="text-sm mt-1">Record your first induction to get started</p>
+                    <p className="font-medium">No records found</p>
+                    <p className="text-sm mt-1">Add an induction or medical record to get started</p>
                   </td>
                 </tr>
               ) : (
@@ -242,26 +259,31 @@ export default function InductionsClient() {
                     <td className="px-4 py-3 text-gray-500 font-mono text-xs">{ind.referenceNo}</td>
                     <td className="px-4 py-3 font-medium text-gray-900">{ind.inducteeName}</td>
                     <td className="px-4 py-3">{typeBadge(ind.inducteeType)}</td>
-                    <td className="hidden sm:table-cell px-4 py-3 text-gray-600">{ind.inductionType}</td>
+                    <td className="hidden sm:table-cell px-4 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5">
+                          {ind.recordType === "medical"
+                            ? <Stethoscope className="h-3.5 w-3.5 text-teal-500 shrink-0" />
+                            : <GraduationCap className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                          }
+                          <span className="text-gray-600 text-xs">{ind.inductionType}</span>
+                        </div>
+                        {ind.recordType === "medical" && ind.medicalResult && (
+                          <div>{medicalResultBadge(ind.medicalResult)}</div>
+                        )}
+                      </div>
+                    </td>
                     <td className="hidden md:table-cell px-4 py-3 text-gray-600">{formatDate(ind.conductedDate)}</td>
-                    <td
-                      className={cn(
-                        "px-4 py-3 font-medium",
-                        ind.status === "expired"
-                          ? "text-red-600"
-                          : ind.status === "expiring_soon"
-                          ? "text-amber-600"
-                          : "text-gray-600"
-                      )}
-                    >
+                    <td className={cn(
+                      "px-4 py-3 font-medium",
+                      ind.status === "expired" ? "text-red-600" : ind.status === "expiring_soon" ? "text-amber-600" : "text-gray-600"
+                    )}>
                       {ind.expiryDate ? formatDate(ind.expiryDate) : "—"}
                     </td>
                     <td className="px-4 py-3">{statusBadge(ind.status)}</td>
                     <td className="px-4 py-3 text-right">
                       <Link href={`/inductions/${ind.id}`}>
-                        <Button variant="ghost" size="sm" className="h-8 text-xs">
-                          View
-                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 text-xs">View</Button>
                       </Link>
                     </td>
                   </tr>

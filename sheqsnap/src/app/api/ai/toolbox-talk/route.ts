@@ -53,13 +53,22 @@ export async function POST(req: NextRequest) {
   const systemPrompt =
     "You are a SHEQ Safety Officer. Generate toolbox talk briefings. Respond with valid JSON only — no markdown, no code blocks.";
 
-  const userPrompt = `Generate a toolbox talk for workers.
-${topic ? `Topic: ${topic}` : "Pick the most relevant topic from the data."}
-Date: ${sessionDate}
-Incidents: ${incidentSummary}
-Near Misses: ${nearMissSummary}
+  const safeTopic = topic ? topic.slice(0, 200) : null;
 
-Return ONLY this JSON:
+  const userPrompt = `Generate a toolbox talk briefing for workers based on the safety data below.
+
+<safety_data>
+Date: ${sessionDate}
+Topic: ${safeTopic ?? "Select the most relevant topic from incidents/near-misses below"}
+<incidents>
+${incidentSummary}
+</incidents>
+<near_misses>
+${nearMissSummary}
+</near_misses>
+</safety_data>
+
+Return ONLY this JSON (no markdown, no extra text):
 {"title":"short title","date":"${sessionDate}","facilitator":"Safety Officer","duration":"15 minutes","safetyMessage":"1-2 sentence opening message","keyPoints":["point1","point2","point3"],"discussionQuestions":["q1","q2"],"actionItems":["action1","action2","action3"],"takeawayMessage":"one closing sentence"}`;
 
   try {
@@ -68,7 +77,7 @@ Return ONLY this JSON:
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      maxTokens: 400,
+      maxTokens: 2000,
       temperature: 0.3,
     });
 

@@ -79,6 +79,15 @@ export default function ChemicalDetailPage() {
   const [compSaving, setCompSaving] = useState(false);
   const [compError, setCompError] = useState("");
 
+  // Training Register
+  const [trainings, setTrainings] = useState<any[]>([]);
+  const [trainingLoading, setTrainingLoading] = useState(false);
+  const [showTrainingForm, setShowTrainingForm] = useState(false);
+  const [trainingSaving, setTrainingSaving] = useState(false);
+  const [trainingError, setTrainingError] = useState("");
+  const [trainingForm, setTrainingForm] = useState({ trainingDate: "", trainerName: "", location: "", duration: "", notes: "" });
+  const [trainingAttendees, setTrainingAttendees] = useState<{ attendeeName: string; attendeeType: string }[]>([{ attendeeName: "", attendeeType: "employee" }]);
+
   const [pubchemCas, setPubchemCas] = useState("");
   const [pubchemLoading, setPubchemLoading] = useState(false);
   const [pubchemMessage, setPubchemMessage] = useState("");
@@ -156,6 +165,51 @@ export default function ChemicalDetailPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function loadTrainings() {
+    setTrainingLoading(true);
+    try {
+      const res = await fetch(`/api/chemicals/${id}/training`);
+      if (res.ok) setTrainings(await res.json());
+    } finally {
+      setTrainingLoading(false);
+    }
+  }
+
+  async function handleAddTraining() {
+    if (!trainingForm.trainingDate || !trainingForm.trainerName.trim()) {
+      setTrainingError("Training date and trainer name are required.");
+      return;
+    }
+    const validAttendees = trainingAttendees.filter((a) => a.attendeeName.trim());
+    setTrainingError("");
+    setTrainingSaving(true);
+    try {
+      const res = await fetch(`/api/chemicals/${id}/training`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...trainingForm, attendees: validAttendees }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setTrainings((prev) => [created, ...prev]);
+        setShowTrainingForm(false);
+        setTrainingForm({ trainingDate: "", trainerName: "", location: "", duration: "", notes: "" });
+        setTrainingAttendees([{ attendeeName: "", attendeeType: "employee" }]);
+      } else {
+        const err = await res.json();
+        setTrainingError(err.error || "Failed to save training.");
+      }
+    } finally {
+      setTrainingSaving(false);
+    }
+  }
+
+  async function handleDeleteTraining(trainingId: string) {
+    if (!confirm("Delete this training session?")) return;
+    const res = await fetch(`/api/chemicals/${id}/training/${trainingId}`, { method: "DELETE" });
+    if (res.ok) setTrainings((prev) => prev.filter((t) => t.id !== trainingId));
   }
 
   function handleLibSearchChange(val: string) {
@@ -440,6 +494,7 @@ export default function ChemicalDetailPage() {
           <TabsTrigger value="components">Components ({componentCount})</TabsTrigger>
           <TabsTrigger value="sds">SDS Library ({sdsCount})</TabsTrigger>
           <TabsTrigger value="locations">Locations ({locCount})</TabsTrigger>
+          <TabsTrigger value="training" onClick={() => { if (trainings.length === 0 && !trainingLoading) loadTrainings(); }}>Training Register</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
 
@@ -1014,6 +1069,137 @@ export default function ChemicalDetailPage() {
               </table>
             </div>
           </Card>
+        </TabsContent>
+
+        {/* ── TRAINING REGISTER TAB ── */}
+        <TabsContent value="training" className="space-y-4 mt-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">{trainings.length} training session{trainings.length !== 1 ? "s" : ""} recorded</p>
+            <Button size="sm" onClick={() => setShowTrainingForm(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              Log Training Session
+            </Button>
+          </div>
+
+          {showTrainingForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">New Training Session</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {trainingError && <p className="text-sm text-red-600 bg-red-50 rounded px-3 py-2">{trainingError}</p>}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Training Date *</Label>
+                    <Input type="date" value={trainingForm.trainingDate} onChange={(e) => setTrainingForm((f) => ({ ...f, trainingDate: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Trainer Name *</Label>
+                    <Input value={trainingForm.trainerName} onChange={(e) => setTrainingForm((f) => ({ ...f, trainerName: e.target.value }))} placeholder="Trainer / facilitator name" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Location</Label>
+                    <Input value={trainingForm.location} onChange={(e) => setTrainingForm((f) => ({ ...f, location: e.target.value }))} placeholder="e.g. Training Room A" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Duration</Label>
+                    <Input value={trainingForm.duration} onChange={(e) => setTrainingForm((f) => ({ ...f, duration: e.target.value }))} placeholder="e.g. 2 hours" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Notes</Label>
+                  <Textarea value={trainingForm.notes} onChange={(e) => setTrainingForm((f) => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Topics covered, observations..." />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Attendees</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setTrainingAttendees((a) => [...a, { attendeeName: "", attendeeType: "employee" }])}>
+                      <Plus className="h-3.5 w-3.5 mr-1" />Add Row
+                    </Button>
+                  </div>
+                  {trainingAttendees.map((att, i) => (
+                    <div key={i} className="flex gap-2 items-center">
+                      <Input
+                        className="flex-1"
+                        value={att.attendeeName}
+                        onChange={(e) => setTrainingAttendees((prev) => prev.map((a, j) => j === i ? { ...a, attendeeName: e.target.value } : a))}
+                        placeholder="Full name"
+                      />
+                      <Select value={att.attendeeType} onValueChange={(v) => setTrainingAttendees((prev) => prev.map((a, j) => j === i ? { ...a, attendeeType: v } : a))}>
+                        <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="employee">Employee</SelectItem>
+                          <SelectItem value="contractor">Contractor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {trainingAttendees.length > 1 && (
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-400" onClick={() => setTrainingAttendees((prev) => prev.filter((_, j) => j !== i))}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => { setShowTrainingForm(false); setTrainingError(""); }}>Cancel</Button>
+                  <Button onClick={handleAddTraining} disabled={trainingSaving}>
+                    {trainingSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Save Session
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {trainingLoading ? (
+            <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-blue-600" /></div>
+          ) : trainings.length === 0 ? (
+            <Card>
+              <CardContent className="py-10 text-center text-gray-400 text-sm">No training sessions recorded yet</CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {trainings.map((t) => (
+                <Card key={t.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="font-medium text-gray-900">{formatDate(t.trainingDate)}</span>
+                          <span className="text-sm text-gray-500">Trainer: {t.trainerName}</span>
+                          {t.location && <span className="text-xs text-gray-400">{t.location}</span>}
+                          {t.duration && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{t.duration}</span>}
+                        </div>
+                        {t.notes && <p className="text-sm text-gray-600 mt-1">{t.notes}</p>}
+                        {(t.attendees || []).length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Attendees ({t.attendees.length})</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {t.attendees.map((a: any) => (
+                                <span key={a.id} className={`text-xs px-2 py-0.5 rounded-full ${a.attendeeType === "contractor" ? "bg-amber-50 text-amber-700 border border-amber-100" : "bg-blue-50 text-blue-700 border border-blue-100"}`}>
+                                  {a.attendeeName}
+                                  <span className="text-gray-400 ml-1">({a.attendeeType})</span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {isAdmin && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600 shrink-0" onClick={() => handleDeleteTraining(t.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         {/* ── AUDIT LOG TAB ── */}

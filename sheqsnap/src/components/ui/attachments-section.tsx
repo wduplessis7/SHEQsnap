@@ -20,6 +20,8 @@ interface AttachmentsSectionProps {
   nearMissId?: string;
   incidentId?: string;
   actionId?: string;
+  licenseId?: string;
+  inductionId?: string;
   onAttachmentAdded: (att: Attachment) => void;
   onAttachmentDeleted: (id: string) => void;
 }
@@ -35,6 +37,8 @@ export function AttachmentsSection({
   nearMissId,
   incidentId,
   actionId,
+  licenseId,
+  inductionId,
   onAttachmentAdded,
   onAttachmentDeleted,
 }: AttachmentsSectionProps) {
@@ -51,6 +55,8 @@ export function AttachmentsSection({
       if (nearMissId) fd.append("nearMissId", nearMissId);
       if (incidentId) fd.append("incidentId", incidentId);
       if (actionId) fd.append("actionId", actionId);
+      if (licenseId) fd.append("licenseId", licenseId);
+      if (inductionId) fd.append("inductionId", inductionId);
 
       const res = await fetch("/api/attachments", { method: "POST", body: fd });
       if (res.ok) {

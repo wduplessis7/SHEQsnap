@@ -57,7 +57,7 @@ export default function NearMissDetailPage() {
     Promise.all([
       fetch(`/api/near-misses/${id}`).then((r) => r.json()),
       fetch("/api/admin/departments").then((r) => r.json()),
-      fetch("/api/admin/users").then((r) => r.json()),
+      fetch("/api/users").then((r) => r.json()),
     ]).then(([data, depts, userList]) => {
       setItem(data);
       setForm({

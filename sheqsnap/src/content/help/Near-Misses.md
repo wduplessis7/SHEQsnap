@@ -145,4 +145,30 @@ A near miss is flagged as overdue if it has been open for longer than the config
 
 ---
 
+## AI Safety Analysis
+
+The AI Safety Analysis feature is available on individual near miss detail pages for users with the **AI Intelligence** module enabled on their SHEQSnap license.
+
+1. Open the near miss record
+2. Click the **AI Analysis** tab near the top of the detail page
+3. Click **Analyse with AI**
+4. Wait up to 60 seconds — the analysis runs on a local AI server with no internet connection required
+
+The AI returns the following for the near miss:
+
+| Output | Description |
+|--------|-------------|
+| **Risk Level** | An overall risk rating (Critical, High, Medium, or Low) |
+| **Summary** | A concise plain-language summary of the near miss event |
+| **Root Causes** | Identified underlying causes based on the reported data |
+| **Immediate Actions** | Recommended steps to address the hazard identified |
+| **Preventive Measures** | Longer-term controls to prevent a similar event or actual incident |
+| **Investigation Checklist** | A structured checklist to guide the investigation process |
+
+AI output is a starting point for analysis, not a replacement for professional SHEQ judgement. Always apply professional judgement and verify recommendations against actual site conditions.
+
+To run the analysis again with updated information, click **Re-analyse**.
+
+---
+
 [Back to Home](Home)

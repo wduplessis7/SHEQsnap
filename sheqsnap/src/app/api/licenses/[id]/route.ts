@@ -16,7 +16,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const license = await prisma.license.findUnique({ where: { id: params.id } });
+  const license = await prisma.license.findUnique({
+    where: { id: params.id },
+    include: { attachments: { include: { uploadedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } } },
+  });
   if (!license) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json(license);

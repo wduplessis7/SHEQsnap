@@ -8,22 +8,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { AIConfigCard } from "@/components/ai/AIConfigCard";
 
 const MODULE_LABELS: Record<string, string> = {
   "actions": "Actions",
   "near-misses": "Near Misses",
   "observations": "Observations",
   "incidents": "Incidents",
+  "reports": "Reports",
   "moc": "MOC",
   "checklists": "Checklists",
   "inductions": "Inductions",
   "licenses": "Licenses",
-  "reports": "Reports",
   "documents": "Documents",
   "chemicals": "MSDS",
   "legal_appointments": "Legal Appointments",
-  "ai": "AI Safety Analyst",
+  "ai": "AI Intelligence",
 };
+
+const BASE_MODULES = ["actions", "near-misses", "observations", "incidents", "reports"];
 
 function formatDate(dateStr: string | null | undefined) {
   if (!dateStr) return "No expiry";
@@ -126,7 +129,7 @@ export default function PlatformLicensePage() {
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button variant="outline" asChild>
-            <a href="http://192.168.1.106:3030" target="_blank" rel="noopener noreferrer">
+            <a href={process.env.NEXT_PUBLIC_LICENSE_SERVER_URL ?? "http://192.168.1.106:3030"} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-4 w-4 mr-2" />
               License Server
             </a>
@@ -149,14 +152,30 @@ export default function PlatformLicensePage() {
                 <p className="text-sm text-gray-500 capitalize">{licenseServer?.status ?? "Unknown"}</p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {(licenseServer?.modules ?? []).map((mod) => (
-                <Badge key={mod} variant="secondary">
-                  {MODULE_LABELS[mod] ?? mod}
-                </Badge>
-              ))}
-              {(licenseServer?.modules ?? []).includes("all") && (
-                <Badge variant="secondary">All Modules</Badge>
+            <div className="space-y-2 flex-1">
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-full">Base</span>
+                {BASE_MODULES.map((mod) => (
+                  <Badge key={mod} variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200">
+                    {MODULE_LABELS[mod]}
+                  </Badge>
+                ))}
+              </div>
+              {((licenseServer?.modules ?? []).includes("all") || (licenseServer?.modules ?? []).some((m) => !BASE_MODULES.includes(m))) && (
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-full">Licensed Add-ons</span>
+                  {(licenseServer?.modules ?? []).includes("all") ? (
+                    <Badge variant="secondary" className="bg-green-50 text-green-700 border border-green-200">All Modules</Badge>
+                  ) : (
+                    (licenseServer?.modules ?? [])
+                      .filter((m) => !BASE_MODULES.includes(m))
+                      .map((mod) => (
+                        <Badge key={mod} variant="secondary" className="bg-green-50 text-green-700 border border-green-200">
+                          {MODULE_LABELS[mod] ?? mod}
+                        </Badge>
+                      ))
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -209,6 +228,9 @@ export default function PlatformLicensePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Engine Configuration */}
+      <AIConfigCard />
 
       {/* Users Table */}
       <Card>

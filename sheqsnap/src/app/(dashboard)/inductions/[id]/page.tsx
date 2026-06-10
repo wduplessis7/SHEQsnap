@@ -12,6 +12,7 @@ import {
   Save,
   Trash2,
   GraduationCap,
+  Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AttachmentsSection } from "@/components/ui/attachments-section";
+import { Paperclip } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 const INDUCTION_TYPES = [
@@ -38,9 +41,40 @@ const INDUCTION_TYPES = [
   "Other",
 ];
 
+const MEDICAL_TYPES = [
+  "Pre-Employment Medical",
+  "Periodic Medical (Annual)",
+  "Exit Medical",
+  "Fitness Certificate",
+  "Audiometry Test",
+  "Spirometry Test",
+  "Vision Test",
+  "Occupational Health Assessment",
+  "Other",
+];
+
+const MEDICAL_RESULTS = [
+  "Fit for Duty",
+  "Fit with Restrictions",
+  "Temporarily Unfit",
+  "Unfit for Duty",
+  "Pending Results",
+];
+
+interface Attachment {
+  id: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+  uploadedBy: { name: string };
+}
+
 interface Induction {
   id: string;
   referenceNo: string;
+  recordType: string;
   inducteeName: string;
   inducteeType: string;
   inductionType: string;
@@ -49,33 +83,40 @@ interface Induction {
   expiryDate: string | null;
   validityMonths: number | null;
   status: string;
+  medicalResult: string | null;
+  medicalProvider: string | null;
   departmentId: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  attachments: Attachment[];
 }
 
 function statusBadge(status: string) {
   switch (status) {
     case "expired":
-      return (
-        <span className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-red-100 text-red-700">
-          Expired
-        </span>
-      );
+      return <span className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-red-100 text-red-700">Expired</span>;
     case "expiring_soon":
-      return (
-        <span className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-amber-100 text-amber-700">
-          Expiring Soon
-        </span>
-      );
+      return <span className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-amber-100 text-amber-700">Expiring Soon</span>;
     default:
-      return (
-        <span className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-green-100 text-green-700">
-          Current
-        </span>
-      );
+      return <span className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-green-100 text-green-700">Current</span>;
   }
+}
+
+function medicalResultBadge(result: string | null) {
+  if (!result) return null;
+  const cfg: Record<string, string> = {
+    "Fit for Duty": "bg-green-100 text-green-700",
+    "Fit with Restrictions": "bg-amber-100 text-amber-700",
+    "Temporarily Unfit": "bg-orange-100 text-orange-700",
+    "Unfit for Duty": "bg-red-100 text-red-700",
+    "Pending Results": "bg-gray-100 text-gray-600",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${cfg[result] ?? "bg-gray-100 text-gray-600"}`}>
+      {result}
+    </span>
+  );
 }
 
 export default function InductionDetailPage() {
@@ -87,6 +128,7 @@ export default function InductionDetailPage() {
   const isAdmin = userRole === "ADMIN";
 
   const [induction, setInduction] = useState<Induction | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -104,6 +146,8 @@ export default function InductionDetailPage() {
     conductedDate: "",
     expiryDate: "",
     notes: "",
+    medicalResult: "",
+    medicalProvider: "",
   });
 
   useEffect(() => {
@@ -114,6 +158,7 @@ export default function InductionDetailPage() {
           setError(data.error);
         } else {
           setInduction(data);
+          setAttachments(data.attachments || []);
           setForm({
             inducteeName: data.inducteeName,
             inducteeType: data.inducteeType,
@@ -122,6 +167,8 @@ export default function InductionDetailPage() {
             conductedDate: data.conductedDate.slice(0, 10),
             expiryDate: data.expiryDate ? data.expiryDate.slice(0, 10) : "",
             notes: data.notes || "",
+            medicalResult: data.medicalResult || "",
+            medicalProvider: data.medicalProvider || "",
           });
           if (data.expiryDate) {
             setValidityOption(data.validityMonths ? String(data.validityMonths) : "custom");
@@ -130,25 +177,30 @@ export default function InductionDetailPage() {
           }
         }
       })
-      .catch(() => setError("Failed to load induction"))
+      .catch(() => setError("Failed to load record"))
       .finally(() => setLoading(false));
   }, [id]);
 
+  const isMedical = induction?.recordType === "medical";
+
   const handleSave = async () => {
     if (!form.inducteeName.trim() || !form.inductionType || !form.conductedByName.trim() || !form.conductedDate) {
-      setSaveError("Inductee name, induction type, conducted by, and date are required.");
+      setSaveError("Name, type, conducted by, and date are required.");
       return;
     }
     setSaveError("");
     setSaving(true);
     try {
       const payload: any = {
+        recordType: induction?.recordType,
         inducteeName: form.inducteeName.trim(),
         inducteeType: form.inducteeType,
         inductionType: form.inductionType,
         conductedByName: form.conductedByName.trim(),
         conductedDate: form.conductedDate,
         notes: form.notes.trim() || null,
+        medicalResult: isMedical ? (form.medicalResult || null) : null,
+        medicalProvider: isMedical ? (form.medicalProvider.trim() || null) : null,
       };
       if (validityOption === "custom" && form.expiryDate) {
         payload.expiryDate = form.expiryDate;
@@ -191,50 +243,42 @@ export default function InductionDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
 
   if (error) {
     return (
       <div className="space-y-4">
-        <Link href="/inductions">
-          <Button variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Inductions
-          </Button>
-        </Link>
+        <Link href="/inductions"><Button variant="outline"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button></Link>
         <p className="text-red-600">{error}</p>
       </div>
     );
   }
+
+  const typeList = isMedical ? MEDICAL_TYPES : INDUCTION_TYPES;
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <Link href="/inductions">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+            <Button variant="outline" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
           </Link>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-bold text-gray-900">{induction?.inducteeName}</h1>
               {induction && statusBadge(induction.status)}
+              {isMedical && induction?.medicalResult && medicalResultBadge(induction.medicalResult)}
             </div>
-            <p className="text-gray-500 text-sm mt-0.5">{induction?.referenceNo} · {induction?.inductionType}</p>
+            <p className="text-gray-500 text-sm mt-0.5">
+              {induction?.referenceNo} · {isMedical ? "Medical" : "Induction"} · {induction?.inductionType}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {editing ? (
             <>
-              <Button variant="outline" onClick={() => { setEditing(false); setSaveError(""); }}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={() => { setEditing(false); setSaveError(""); }}>Cancel</Button>
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                 Save Changes
@@ -242,15 +286,9 @@ export default function InductionDetailPage() {
             </>
           ) : (
             <>
-              <Button onClick={() => setEditing(true)}>
-                Edit
-              </Button>
+              <Button onClick={() => setEditing(true)}>Edit</Button>
               {isAdmin && (
-                <Button
-                  variant="outline"
-                  className="text-red-600 border-red-200 hover:bg-red-50"
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
+                <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setShowDeleteConfirm(true)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
@@ -259,15 +297,13 @@ export default function InductionDetailPage() {
         </div>
       </div>
 
-      {saveError && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{saveError}</p>
-      )}
+      {saveError && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{saveError}</p>}
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <GraduationCap className="h-4 w-4" />
-            Induction Details
+            {isMedical ? <Stethoscope className="h-4 w-4 text-teal-600" /> : <GraduationCap className="h-4 w-4" />}
+            {isMedical ? "Medical Record Details" : "Induction Details"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -275,22 +311,13 @@ export default function InductionDetailPage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="inducteeName">Inductee Name *</Label>
-                  <Input
-                    id="inducteeName"
-                    value={form.inducteeName}
-                    onChange={(e) => setForm((f) => ({ ...f, inducteeName: e.target.value }))}
-                  />
+                  <Label htmlFor="inducteeName">{isMedical ? "Patient Name" : "Inductee Name"} *</Label>
+                  <Input id="inducteeName" value={form.inducteeName} onChange={(e) => setForm((f) => ({ ...f, inducteeName: e.target.value }))} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="inducteeType">Inductee Type *</Label>
-                  <Select
-                    value={form.inducteeType}
-                    onValueChange={(v) => setForm((f) => ({ ...f, inducteeType: v }))}
-                  >
-                    <SelectTrigger id="inducteeType">
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Label htmlFor="inducteeType">Type *</Label>
+                  <Select value={form.inducteeType} onValueChange={(v) => setForm((f) => ({ ...f, inducteeType: v }))}>
+                    <SelectTrigger id="inducteeType"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="employee">Employee</SelectItem>
                       <SelectItem value="contractor">Contractor</SelectItem>
@@ -300,39 +327,42 @@ export default function InductionDetailPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="inductionType">Induction Type *</Label>
-                <Select
-                  value={form.inductionType}
-                  onValueChange={(v) => setForm((f) => ({ ...f, inductionType: v }))}
-                >
-                  <SelectTrigger id="inductionType">
-                    <SelectValue />
-                  </SelectTrigger>
+                <Label htmlFor="inductionType">{isMedical ? "Medical Type" : "Induction Type"} *</Label>
+                <Select value={form.inductionType} onValueChange={(v) => setForm((f) => ({ ...f, inductionType: v }))}>
+                  <SelectTrigger id="inductionType"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {INDUCTION_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
+                    {typeList.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
 
+              {isMedical && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="medicalResult">Medical Result</Label>
+                    <Select value={form.medicalResult || "none"} onValueChange={(v) => setForm((f) => ({ ...f, medicalResult: v === "none" ? "" : v }))}>
+                      <SelectTrigger id="medicalResult"><SelectValue placeholder="Select result" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Not recorded</SelectItem>
+                        {MEDICAL_RESULTS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="medicalProvider">Clinic / Health Provider</Label>
+                    <Input id="medicalProvider" value={form.medicalProvider} onChange={(e) => setForm((f) => ({ ...f, medicalProvider: e.target.value }))} placeholder="Clinic or OMP name" />
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="conductedByName">Conducted By *</Label>
-                  <Input
-                    id="conductedByName"
-                    value={form.conductedByName}
-                    onChange={(e) => setForm((f) => ({ ...f, conductedByName: e.target.value }))}
-                  />
+                  <Label htmlFor="conductedByName">{isMedical ? "Examining Doctor / OMP" : "Conducted By"} *</Label>
+                  <Input id="conductedByName" value={form.conductedByName} onChange={(e) => setForm((f) => ({ ...f, conductedByName: e.target.value }))} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="conductedDate">Conducted Date *</Label>
-                  <Input
-                    id="conductedDate"
-                    type="date"
-                    value={form.conductedDate}
-                    onChange={(e) => setForm((f) => ({ ...f, conductedDate: e.target.value }))}
-                  />
+                  <Label htmlFor="conductedDate">{isMedical ? "Examination Date" : "Conducted Date"} *</Label>
+                  <Input id="conductedDate" type="date" value={form.conductedDate} onChange={(e) => setForm((f) => ({ ...f, conductedDate: e.target.value }))} />
                 </div>
               </div>
 
@@ -340,9 +370,7 @@ export default function InductionDetailPage() {
                 <div className="space-y-1.5">
                   <Label>Validity Period</Label>
                   <Select value={validityOption} onValueChange={setValidityOption}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No expiry</SelectItem>
                       <SelectItem value="3">3 months</SelectItem>
@@ -357,46 +385,50 @@ export default function InductionDetailPage() {
                 {validityOption === "custom" && (
                   <div className="space-y-1.5">
                     <Label htmlFor="expiryDate">Expiry Date</Label>
-                    <Input
-                      id="expiryDate"
-                      type="date"
-                      value={form.expiryDate}
-                      onChange={(e) => setForm((f) => ({ ...f, expiryDate: e.target.value }))}
-                    />
+                    <Input id="expiryDate" type="date" value={form.expiryDate} onChange={(e) => setForm((f) => ({ ...f, expiryDate: e.target.value }))} />
                   </div>
                 )}
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={form.notes}
-                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                  rows={4}
-                />
+                <Label htmlFor="notes">{isMedical ? "Restrictions / Notes" : "Notes"}</Label>
+                <Textarea id="notes" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={4} />
               </div>
             </>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
               <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Inductee Name</p>
+                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">{isMedical ? "Patient" : "Inductee"}</p>
                 <p className="text-gray-800 font-medium">{induction?.inducteeName}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Inductee Type</p>
+                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Type</p>
                 <p className="text-gray-800 capitalize">{induction?.inducteeType}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Induction Type</p>
+                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">{isMedical ? "Medical Type" : "Induction Type"}</p>
                 <p className="text-gray-800">{induction?.inductionType}</p>
               </div>
+              {isMedical && (
+                <>
+                  <div>
+                    <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Medical Result</p>
+                    {induction?.medicalResult ? medicalResultBadge(induction.medicalResult) : <p className="text-gray-400">Not recorded</p>}
+                  </div>
+                  {induction?.medicalProvider && (
+                    <div>
+                      <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Clinic / Health Provider</p>
+                      <p className="text-gray-800">{induction.medicalProvider}</p>
+                    </div>
+                  )}
+                </>
+              )}
               <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Conducted By</p>
+                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">{isMedical ? "Examining Doctor / OMP" : "Conducted By"}</p>
                 <p className="text-gray-800">{induction?.conductedByName}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Conducted Date</p>
+                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">{isMedical ? "Examination Date" : "Conducted Date"}</p>
                 <p className="text-gray-800">{induction?.conductedDate ? formatDate(induction.conductedDate) : "—"}</p>
               </div>
               <div>
@@ -405,12 +437,30 @@ export default function InductionDetailPage() {
               </div>
               {induction?.notes && (
                 <div className="sm:col-span-2">
-                  <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Notes</p>
+                  <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">{isMedical ? "Restrictions / Notes" : "Notes"}</p>
                   <p className="text-gray-800 whitespace-pre-wrap">{induction.notes}</p>
                 </div>
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Attachments */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Paperclip className="h-4 w-4" />
+            Attachments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AttachmentsSection
+            attachments={attachments}
+            inductionId={id}
+            onAttachmentAdded={(att) => setAttachments((prev) => [att, ...prev])}
+            onAttachmentDeleted={(attId) => setAttachments((prev) => prev.filter((a) => a.id !== attId))}
+          />
         </CardContent>
       </Card>
 
@@ -423,16 +473,19 @@ export default function InductionDetailPage() {
                 <p className="text-gray-700 font-mono">{induction.referenceNo}</p>
               </div>
               <div>
+                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Record Type</p>
+                <div className="flex items-center gap-1.5">
+                  {isMedical ? <Stethoscope className="h-3.5 w-3.5 text-teal-600" /> : <GraduationCap className="h-3.5 w-3.5 text-blue-600" />}
+                  <span className="text-gray-700 capitalize">{induction.recordType}</span>
+                </div>
+              </div>
+              <div>
                 <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Status</p>
                 {statusBadge(induction.status)}
               </div>
               <div>
                 <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Created</p>
                 <p className="text-gray-700">{formatDate(induction.createdAt)}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Updated</p>
-                <p className="text-gray-700">{formatDate(induction.updatedAt)}</p>
               </div>
             </div>
           </CardContent>
@@ -442,19 +495,13 @@ export default function InductionDetailPage() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Delete Induction</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Delete Record</h2>
             <p className="text-sm text-gray-500 mb-5">
-              Are you sure you want to delete this induction record? This action cannot be undone.
+              Are you sure you want to delete this {isMedical ? "medical" : "induction"} record? This cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
-                Cancel
-              </Button>
-              <Button
-                className="bg-red-600 hover:bg-red-700 text-white"
-                onClick={handleDelete}
-                disabled={deleting}
-              >
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+              <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={handleDelete} disabled={deleting}>
                 {deleting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
                 Delete
               </Button>

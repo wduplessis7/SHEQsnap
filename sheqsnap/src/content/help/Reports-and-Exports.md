@@ -14,30 +14,23 @@ Navigate to **Reports** in the sidebar to access this page.
 
 | Chart | Description |
 |-------|-------------|
-| **Incidents by Severity** | Bar chart showing the count of incidents grouped by severity level |
-| **Near Misses by Severity** | Bar chart showing near miss reports grouped by severity level |
+| **Monthly Trend** | Line chart showing near misses and incidents per month over the past 12 months |
 | **Near Misses by Department** | Pie chart showing the proportion of near misses from each department |
-| **Incidents by Department** | Pie chart showing incidents per department |
-| **Actions Status Summary** | Bar chart showing how many actions are in each status |
-| **Monthly Trend** | Line chart showing near misses and incidents per month over 12 months |
-| **Near Miss to Incident Ratio** | Comparison metric showing how many near misses are reported per incident |
-| **Top Risk Categories** | Bar chart showing which hazard categories appear most frequently |
+| **Incidents by Severity** | Bar chart showing the count of incidents grouped by severity level, colour coded by severity |
+| **Actions by Status** | Horizontal bar chart showing how many actions are in each status |
 
 ---
 
 ## How to Apply Filters
 
-All charts on the Reports page respond to the filter bar at the top of the page. Available filters:
+The filter bar at the top of the Reports page allows you to narrow the data shown across all charts. Available filters:
 
 | Filter | Description |
 |--------|-------------|
 | **Date Range** | Start and end date for the data period |
 | **Department** | Filter by a specific department |
-| **Site / Location** | Filter by a specific site |
-| **Severity** | Show only records at a certain severity level |
-| **Status** | Filter by record status (e.g., show only Open or Closed records) |
 
-After selecting your filters, click **Apply** to update all charts. Click **Reset** to clear all filters.
+After selecting your filters, click **Apply Filters** to update all charts.
 
 ---
 
@@ -50,10 +43,9 @@ The Excel export produces a spreadsheet containing all records that match your c
 3. The file will download automatically to your computer
 
 **What is included in the Excel export:**
-- Near misses (reference, title, date, severity, status, department, assignee)
+- Near Misses (reference, title, date, severity, status, department, assignee)
 - Incidents (reference, title, date, severity, incident type, injury type, status)
 - Actions (reference, title, priority, status, due date, assignee, completion date)
-- Log entries (reference, title, type, date, department, status)
 
 ---
 
@@ -73,20 +65,26 @@ The PDF export produces a formatted management summary suitable for printing or 
 
 ---
 
-## Monthly Safety Report View
+## AI Predictive Risk Forecast
 
-The Monthly Safety Report view provides a structured summary of a single calendar month. This is useful for preparing your regular safety committee report.
+The AI Predictive Risk Forecast is available on the Reports page for users with the **AI Intelligence** module enabled on their SHEQSnap license. It appears below the KPI summary cards.
 
-1. Click **Reports** in the sidebar
-2. Select **Monthly Report** tab
-3. Choose the month and year
-4. The report will display with all the month's statistics
+1. Navigate to the **Reports** page
+2. Click **Generate Forecast**
+3. Wait up to 60 seconds — the forecast runs on a local AI server with no internet connection required
 
-This view includes:
-- Total near misses and incidents for the month
-- Comparison to the previous month
-- New, open, and closed actions
-- Any overdue items carried forward
+The forecast returns the **Top 3 predicted risks** for your site. Each predicted risk includes:
+
+| Output | Description |
+|--------|-------------|
+| **Risk Level** | Severity rating: CRITICAL, HIGH, MEDIUM, or LOW |
+| **Trend** | Direction the risk is moving: Increasing, Stable, or Decreasing |
+| **Description** | An explanation of the predicted risk based on your safety data |
+| **Recommended Actions** | Suggested interventions to address the risk proactively |
+
+Use the forecast to prioritise proactive safety interventions before incidents occur. AI output is guidance only — always validate against your knowledge of site conditions and apply professional SHEQ judgement.
+
+To refresh the forecast with the latest data, click **Regenerate**.
 
 ---
 
@@ -99,7 +97,7 @@ The **Monthly Trend** chart is your most powerful tool for spotting patterns:
 - An increasing number of overdue actions indicates capacity or priority issues in your team
 - Seasonal spikes may indicate weather-related or project-specific risks
 
-Use the **Top Risk Categories** chart to identify which types of hazards are most prevalent and target your safety training accordingly.
+Use the **Incidents by Severity** chart to identify the concentration of high-severity events and prioritise your corrective action programme accordingly.
 
 ---
 

@@ -97,7 +97,7 @@ function ActionsPageInner() {
   }, [filters, page]);
 
   useEffect(() => {
-    fetch("/api/admin/users").then((r) => r.json()).then((data) => setUsers(data.filter((u: any) => u.active))).catch(() => {});
+    fetch("/api/users").then((r) => r.json()).then((data) => setUsers(data.filter((u: any) => u.active))).catch(() => {});
     fetch("/api/admin/departments").then((r) => r.json()).then(setDepartments).catch(() => {});
   }, []);
 

@@ -1,8 +1,4 @@
-/**
- * Unified AI completion client.
- * Set AI_PROVIDER=ollama|openai|gemini in environment.
- * Defaults to ollama if not set.
- */
+import { readAIConfig } from "@/lib/ai-config";
 
 export type AIMessage = { role: "system" | "user" | "assistant"; content: string };
 
@@ -12,56 +8,44 @@ export interface AICompletionOptions {
   temperature?: number;
 }
 
-type Provider = "ollama" | "openai" | "gemini";
-
-function getProvider(): Provider {
-  const p = (process.env.AI_PROVIDER ?? "ollama").toLowerCase();
-  if (p === "openai") return "openai";
-  if (p === "gemini") return "gemini";
-  return "ollama";
-}
-
 function getEndpointAndHeaders(): { url: string; headers: Record<string, string>; extraBody?: Record<string, unknown> } {
-  const provider = getProvider();
+  const config = readAIConfig();
 
-  if (provider === "openai") {
-    const key = process.env.OPENAI_API_KEY;
-    if (!key) throw new Error("OPENAI_API_KEY is not set");
+  if (config.provider === "openai") {
+    if (!config.openaiKey) throw new Error("OpenAI API key is not configured. Set it in Admin → Platform License → AI Engine.");
     return {
       url: "https://api.openai.com/v1/chat/completions",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${key}`,
+        "Authorization": `Bearer ${config.openaiKey}`,
       },
     };
   }
 
-  if (provider === "gemini") {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) throw new Error("GEMINI_API_KEY is not set");
+  if (config.provider === "gemini") {
+    if (!config.geminiKey) throw new Error("Gemini API key is not configured. Set it in Admin → Platform License → AI Engine.");
     return {
       url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${key}`,
+        "Authorization": `Bearer ${config.geminiKey}`,
       },
     };
   }
 
   // Ollama (default)
-  const ollamaUrl = process.env.OLLAMA_URL || "http://192.168.1.92:11434";
   return {
-    url: `${ollamaUrl}/v1/chat/completions`,
+    url: `${config.ollamaUrl}/v1/chat/completions`,
     headers: { "Content-Type": "application/json" },
     extraBody: { keep_alive: -1 },
   };
 }
 
 function getModel(): string {
-  const provider = getProvider();
-  if (provider === "openai") return process.env.OPENAI_MODEL || "gpt-4o-mini";
-  if (provider === "gemini") return process.env.GEMINI_MODEL || "gemini-1.5-flash";
-  return process.env.OLLAMA_MODEL || "qwen2.5:3b";
+  const config = readAIConfig();
+  if (config.provider === "openai") return config.openaiModel;
+  if (config.provider === "gemini") return config.geminiModel;
+  return config.ollamaModel;
 }
 
 export async function aiCompletion(options: AICompletionOptions): Promise<string> {
@@ -93,8 +77,8 @@ export async function aiCompletion(options: AICompletionOptions): Promise<string
 }
 
 export function getProviderLabel(): string {
-  const provider = getProvider();
-  if (provider === "openai") return `OpenAI (${getModel()})`;
-  if (provider === "gemini") return `Google Gemini (${getModel()})`;
-  return `Ollama (${getModel()})`;
+  const config = readAIConfig();
+  if (config.provider === "openai") return `OpenAI (${config.openaiModel})`;
+  if (config.provider === "gemini") return `Google Gemini (${config.geminiModel})`;
+  return `Ollama (${config.ollamaModel})`;
 }

@@ -43,13 +43,14 @@ export default function ActionDetailPage() {
   useEffect(() => {
     Promise.all([
       fetch(`/api/actions/${id}`).then((r) => r.json()),
-      fetch("/api/admin/users").then((r) => r.json()),
+      fetch("/api/users").then((r) => r.json()),
     ]).then(([data, userList]) => {
       setItem(data);
       setForm({
         description: data.description || "",
         ownerId: data.ownerId || "",
         priority: data.priority || "MEDIUM",
+        actionClass: data.actionClass || "NORMAL",
         dueDate: data.dueDate?.split("T")[0] || "",
         status: data.status || "OPEN",
         completionNotes: data.completionNotes || "",
@@ -255,7 +256,37 @@ export default function ActionDetailPage() {
                         <SelectContent>{["LOW","MEDIUM","HIGH","CRITICAL"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
-                    <div><Label>Due Date</Label><Input type="date" value={form.dueDate} onChange={(e) => setField("dueDate", e.target.value)} className="mt-1" /></div>
+                    <div><Label>Action Class</Label>
+                      <Select value={form.actionClass || "NORMAL"} onValueChange={(v) => {
+                        setField("actionClass", v);
+                        if (v !== "NORMAL") setField("dueDate", "");
+                      }}>
+                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A">Class A — Same day</SelectItem>
+                          <SelectItem value="B">Class B — Within 3 days</SelectItem>
+                          <SelectItem value="C">Class C — Within 7 days</SelectItem>
+                          <SelectItem value="NORMAL">Normal — Custom date</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Due Date{form.actionClass !== "NORMAL" ? " (auto-set by class)" : ""}</Label>
+                    <Input
+                      type="date"
+                      value={form.dueDate}
+                      onChange={(e) => setField("dueDate", e.target.value)}
+                      className="mt-1"
+                      disabled={form.actionClass !== "NORMAL"}
+                    />
+                    {form.actionClass !== "NORMAL" && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        {form.actionClass === "A" && "Will be set to end of today on save"}
+                        {form.actionClass === "B" && "Will be set to 3 days from today on save"}
+                        {form.actionClass === "C" && "Will be set to 7 days from today on save"}
+                      </p>
+                    )}
                   </div>
                   <div><Label>Action Owner</Label>
                     <Select value={form.ownerId} onValueChange={(v) => setField("ownerId", v)}>
@@ -307,6 +338,15 @@ export default function ActionDetailPage() {
             <CardContent className="space-y-3 text-sm">
               <div><p className="text-xs text-gray-500">Owner</p><p className="font-medium">{item.owner?.name}</p></div>
               {item.assignedGroup && <div><p className="text-xs text-gray-500">Group</p><p className="font-medium">{item.assignedGroup.name}</p></div>}
+              <div>
+                <p className="text-xs text-gray-500">Action Class</p>
+                <p className="font-medium">
+                  {item.actionClass === "A" && <span className="text-red-600">Class A — Same day</span>}
+                  {item.actionClass === "B" && <span className="text-orange-600">Class B — 3 days</span>}
+                  {item.actionClass === "C" && <span className="text-amber-600">Class C — 7 days</span>}
+                  {(!item.actionClass || item.actionClass === "NORMAL") && <span className="text-gray-600">Normal</span>}
+                </p>
+              </div>
               <div><p className="text-xs text-gray-500">Due Date</p><p className={`font-medium ${overdue ? "text-red-600" : ""}`}>{formatDate(item.dueDate) || "Not set"}</p></div>
               {item.dateCompleted && <div><p className="text-xs text-gray-500">Completed</p><p className="font-medium text-green-600">{formatDate(item.dateCompleted)}</p></div>}
               <div><p className="text-xs text-gray-500">Created</p><p className="text-gray-600">{formatDateTime(item.createdAt)}</p></div>

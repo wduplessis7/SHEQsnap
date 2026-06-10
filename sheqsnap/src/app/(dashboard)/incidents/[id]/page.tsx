@@ -45,7 +45,7 @@ export default function IncidentDetailPage() {
     Promise.all([
       fetch(`/api/incidents/${id}`).then((r) => r.json()),
       fetch("/api/admin/departments").then((r) => r.json()),
-      fetch("/api/admin/users").then((r) => r.json()),
+      fetch("/api/users").then((r) => r.json()),
     ]).then(([data, depts, userList]) => {
       setItem(data);
       setForm({

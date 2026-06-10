@@ -19,25 +19,33 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const inducteeType = searchParams.get("inducteeType");
+  const recordType = searchParams.get("recordType");
   const search = searchParams.get("search");
 
   const where: any = {};
   if (status) where.status = status;
   if (inducteeType) where.inducteeType = inducteeType;
+  if (recordType) where.recordType = recordType;
   if (search) {
     where.OR = [
       { inducteeName: { contains: search } },
       { inductionType: { contains: search } },
       { conductedByName: { contains: search } },
+      { medicalProvider: { contains: search } },
     ];
   }
 
-  const inductions = await prisma.induction.findMany({
-    where,
-    orderBy: { conductedDate: "desc" },
-  });
+  try {
+    const inductions = await prisma.induction.findMany({
+      where,
+      orderBy: { conductedDate: "desc" },
+    });
 
-  return NextResponse.json(inductions);
+    return NextResponse.json(inductions);
+  } catch (err) {
+    console.error("[inductions GET]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -59,26 +67,35 @@ export async function POST(req: NextRequest) {
   }
 
   const tempId = Math.random().toString(36).slice(2, 8).toUpperCase();
-  const referenceNo = `IND-${tempId}`;
+  const recordType = body.recordType === "medical" ? "medical" : "induction";
+  const referenceNo = `${recordType === "medical" ? "MED" : "IND"}-${tempId}`;
 
-  const induction = await prisma.induction.create({
-    data: {
-      referenceNo,
-      inducteeName: body.inducteeName,
-      inducteeType: body.inducteeType,
-      inducteeId: body.inducteeId || null,
-      inductionType: body.inductionType,
-      conductedByName: body.conductedByName,
-      conductedById: body.conductedById || null,
-      conductedDate,
-      expiryDate,
-      validityMonths: body.validityMonths ? Number(body.validityMonths) : null,
-      status: computeStatus(expiryDate),
-      departmentId: body.departmentId || null,
-      notes: body.notes || null,
-      createdById: (session.user as any)?.id || null,
-    },
-  });
+  try {
+    const induction = await prisma.induction.create({
+      data: {
+        referenceNo,
+        recordType,
+        inducteeName: body.inducteeName,
+        inducteeType: body.inducteeType,
+        inducteeId: body.inducteeId || null,
+        inductionType: body.inductionType,
+        conductedByName: body.conductedByName,
+        conductedById: body.conductedById || null,
+        conductedDate,
+        expiryDate,
+        validityMonths: body.validityMonths ? Number(body.validityMonths) : null,
+        status: computeStatus(expiryDate),
+        medicalResult: recordType === "medical" ? (body.medicalResult || null) : null,
+        medicalProvider: recordType === "medical" ? (body.medicalProvider || null) : null,
+        departmentId: body.departmentId || null,
+        notes: body.notes || null,
+        createdById: (session.user as any)?.id || null,
+      },
+    });
 
-  return NextResponse.json(induction, { status: 201 });
+    return NextResponse.json(induction, { status: 201 });
+  } catch (err) {
+    console.error("[inductions POST]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

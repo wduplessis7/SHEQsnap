@@ -47,7 +47,7 @@ export default function NewIncidentPage() {
   useEffect(() => {
     Promise.all([
       fetch("/api/admin/departments").then((r) => r.json()),
-      fetch("/api/admin/users").then((r) => r.json()),
+      fetch("/api/users").then((r) => r.json()),
     ]).then(([depts, users]) => {
       setDepartments(depts);
       setUsers(users.filter((u: any) => u.active));

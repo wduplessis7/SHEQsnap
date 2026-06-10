@@ -296,6 +296,7 @@ model Action {
   departmentId     String?
   assignedGroupId  String?
   priority         ActionPriority @default(MEDIUM)
+  actionClass      String         @default("NORMAL")
   dueDate          DateTime?
   status           ActionStatus   @default(OPEN)
   completionNotes  String?
@@ -324,12 +325,16 @@ model Attachment {
   nearMissId   String?
   incidentId   String?
   actionId     String?
+  licenseId    String?
+  inductionId  String?
   createdAt    DateTime @default(now())
 
-  uploadedBy User      @relation(fields: [uploadedById], references: [id])
-  nearMiss   NearMiss? @relation(fields: [nearMissId], references: [id])
-  incident   Incident? @relation(fields: [incidentId], references: [id])
-  action     Action?   @relation(fields: [actionId], references: [id])
+  uploadedBy User       @relation(fields: [uploadedById], references: [id])
+  nearMiss   NearMiss?  @relation(fields: [nearMissId], references: [id])
+  incident   Incident?  @relation(fields: [incidentId], references: [id])
+  action     Action?    @relation(fields: [actionId], references: [id])
+  license    License?   @relation(fields: [licenseId], references: [id])
+  induction  Induction? @relation(fields: [inductionId], references: [id])
 }
 
 model AuditLog {
@@ -559,6 +564,8 @@ model License {
   notes         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  attachments   Attachment[]
 }
 
 // ─── Behaviour-Based Safety (BBS) ────────────────────────────────────────────
@@ -635,21 +642,26 @@ model ObservationEvidence {
 model Induction {
   id              String    @id @default(cuid())
   referenceNo     String    @unique
+  recordType      String    @default("induction") // "induction" | "medical"
   inducteeName    String
   inducteeType    String    // "employee" | "contractor"
   inducteeId      String?
-  inductionType   String    // "Site Safety" | "Fire & Emergency" | "PPE" | "Chemical Handling" | "Equipment" | "Environmental" | "Legal Appointment" | "Other"
+  inductionType   String    // induction: "Site Safety" | "Fire & Emergency" | ... medical: "Pre-Employment" | "Periodic" | ...
   conductedById   String?
-  conductedByName String
+  conductedByName String    // for medicals: examining doctor / OMP
   conductedDate   DateTime
   expiryDate      DateTime?
   validityMonths  Int?
   status          String    @default("current") // "current" | "expiring_soon" | "expired"
+  medicalResult   String?   // "Fit for Duty" | "Fit with Restrictions" | "Temporarily Unfit" | "Unfit for Duty" | "Pending Results"
+  medicalProvider String?   // clinic / OMP / occupational health provider
   departmentId    String?
   notes           String?
   createdById     String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
+  attachments     Attachment[]
 }
 
 // ─── Management of Change (MOC) ──────────────────────────────────────────────
@@ -849,6 +861,10 @@ model DocAcknowledgement {
 // ─── Legal Appointments ──────────────────────────────────────────────────────
 
 enum OrganizationType {
+  MINE
+  GENERAL
+  EMPLOYER
+  CONTRACTOR
   PRIVATE_COMPANY
   PUBLIC_COMPANY
   SOE
@@ -865,6 +881,7 @@ enum AppointmentCategory {
   BOARD
   EXECUTIVE
   STATUTORY
+  OPERATIONAL
   COMMITTEE
   REGULATORY
   OTHER
@@ -1081,6 +1098,7 @@ model ChemicalItem {
   components   ChemicalItemComponent[]
   sdsDocuments SdsDocument[]
   locations    ChemicalLocation[]
+  trainings    ChemicalTraining[]
 }
 
 model ChemicalLibrary {
@@ -1149,4 +1167,33 @@ model ChemicalLocation {
   updatedAt         DateTime @updatedAt
 
   chemicalItem ChemicalItem @relation(fields: [chemicalItemId], references: [id])
+}
+
+// ─── Chemical Training Register ──────────────────────────────────────────────
+
+model ChemicalTraining {
+  id             String   @id @default(cuid())
+  chemicalItemId String
+  trainingDate   DateTime
+  trainerName    String
+  location       String?
+  duration       String?
+  notes          String?
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  chemicalItem ChemicalItem             @relation(fields: [chemicalItemId], references: [id], onDelete: Cascade)
+  attendees    ChemicalTrainingAttendee[]
+}
+
+model ChemicalTrainingAttendee {
+  id           String   @id @default(cuid())
+  trainingId   String
+  attendeeName String
+  attendeeType String   @default("employee") // "employee" | "contractor"
+  acknowledged Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  training ChemicalTraining @relation(fields: [trainingId], references: [id], onDelete: Cascade)
 }
