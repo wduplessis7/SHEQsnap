@@ -31,13 +31,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = session.user as any;
-  const change = await prisma.changeRequest.findUnique({ where: { id: params.id }, select: { createdById: true, approvedById: true } });
+  const change = await prisma.changeRequest.findUnique({ where: { id: params.id }, select: { requestedById: true, approvedById: true } });
   if (!change) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
 
   const isAdmin = user.role === "ADMIN";
-  const isCreator = change.createdById === user.id;
+  const isCreator = change.requestedById === user.id;
   const isAssignedApprover = change.approvedById !== null && change.approvedById === user.id;
   const touchingApprovalFields = ["APPROVED", "REJECTED"].includes(body.status) || body.approvedByName !== undefined || body.approvedAt !== undefined || body.rejectionReason !== undefined;
 
